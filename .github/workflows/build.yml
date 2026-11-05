@@ -1,0 +1,66 @@
+name: Build Windows installer
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Check the ASIO build of PortAudio loads
+        run: |
+          python -c "import os; os.environ['SD_ENABLE_ASIO']='1'; import sounddevice as sd; apis=[a['name'] for a in sd.query_hostapis()]; print(sd.get_portaudio_version(), apis); assert any('ASIO' in a for a in apis), 'ASIO host API missing'"
+
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "version=$(python -c "import re;print(re.search(r'VERSION = \"([^\"]+)\"', open('app/s3000_workbench.py').read()).group(1))")" >> "$GITHUB_OUTPUT"
+
+      - name: Build the program
+        run: pyinstaller --noconfirm --clean s3000_workbench.spec
+
+      - name: Smoke test (starts and serves the page)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\S3000 Workbench\S3000 Workbench.exe" -ArgumentList "--fake","--no-window","--stay" -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 30 -and -not $ok; $i++) { Start-Sleep -Seconds 1; try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8741/ping; $ok = $r.Content -match 's3000-workbench' } catch {} }
+          if (-not $ok) { Stop-Process -Id $p.Id -Force; Get-Content "$env:LOCALAPPDATA\S3000 Workbench\log.txt" -ErrorAction SilentlyContinue; throw "The program did not start" }
+          $page = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8741/
+          if ($page.Content -notmatch 'S3K_APP') { Stop-Process -Id $p.Id -Force; throw "Page not served" }
+          Stop-Process -Id $p.Id -Force
+          Write-Host "Smoke test passed"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build the installer
+        run: iscc /DAppVersion=${{ steps.ver.outputs.version }} installer\setup.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: S3000-Workbench-Setup-${{ steps.ver.outputs.version }}
+          path: installer/Output/*.exe
+
+      - name: Publish a release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/*.exe
