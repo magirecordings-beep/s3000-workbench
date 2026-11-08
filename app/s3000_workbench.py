@@ -2,11 +2,13 @@
 S3000 Workbench for Windows
 
 Serves the Workbench page on this computer only (127.0.0.1), records through the sound card's ASIO
-driver for the Auto sample tab, and opens the page in its own app window (Microsoft Edge app mode).
-The program closes itself a few seconds after its window is closed.
+driver for the Auto sample tab, and shows the page in the program's own window (WebView2, the Edge
+engine built into Windows). If WebView2 cannot start, it falls back to an Edge app window.
+The program exits when its window is closed.
 
     S3000 Workbench.exe              normal start
     S3000 Workbench.exe --fake       no sound card needed: a test tone instead of ASIO
+    S3000 Workbench.exe --edge       use an Edge app window instead of the built-in window
     S3000 Workbench.exe --no-window  do not open a window (for testing in a browser)
 """
 import argparse
@@ -16,6 +18,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import urllib.request
 import webbrowser
 
@@ -26,7 +29,7 @@ from websockets.http11 import Response
 from asio_capture import Capture
 
 APP_NAME = "S3000 Workbench"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 PORT = 8741                 # fixed, so the page keeps the same address and its saved work between runs
 LEVEL_EVERY = 0.05          # seconds between level reports to the page
 IDLE_EXIT = 8               # seconds after the last window closes before the program exits
@@ -100,10 +103,46 @@ def open_window(url):
         return
     profile = os.path.join(data_dir(), "Window")
     args = [exe, "--app=" + url, "--user-data-dir=" + profile, "--window-size=1440,900",
-            "--no-first-run", "--no-default-browser-check", "--disable-features=Translate"]
+            "--no-first-run", "--no-default-browser-check", "--disable-sync",
+            "--disable-features=Translate,msImplicitSignin,msEdgeSyncConsent"]
     log.info("Opening window: %s", exe)
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     subprocess.Popen(args, close_fds=True, creationflags=flags)
+
+
+def run_webview(url, on_closed_first):
+    """The program's own window (WebView2). Blocks until it is closed. Returns False if it could not start."""
+    try:
+        import webview
+    except Exception as e:
+        log.warning("Built-in window not available (%s); using an Edge window", e)
+        return False
+    try:
+        webview.settings["ALLOW_DOWNLOADS"] = True          # the Workbench saves files as downloads
+        webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
+    except Exception:
+        pass
+    store = os.path.join(data_dir(), "WebView")
+    os.makedirs(store, exist_ok=True)
+    try:
+        webview.create_window(APP_NAME, url, width=1440, height=900, min_size=(900, 600), text_select=True)
+        log.info("Opening the built-in window")
+        webview.start(gui="edgechromium", private_mode=False, storage_path=store)
+    except Exception as e:
+        log.exception("Built-in window failed")
+        return False
+    on_closed_first()
+    return True
+
+
+def bring_to_front():
+    try:
+        import webview
+        for w in webview.windows:
+            w.restore()
+            w.show()
+    except Exception:
+        log.exception("Could not bring the window to the front")
 
 
 # ---------- the page ----------
@@ -131,7 +170,9 @@ class App:
         self.url = "http://127.0.0.1:%d/" % args.port
         self.origins = {"http://127.0.0.1:%d" % args.port, "http://localhost:%d" % args.port}
         self.done = None
+        self.loop = None
         self.idle_task = None
+        self.idle_exit = True
 
     # plain web requests: the page itself, and a ping used to find a copy that is already running
     def process_request(self, connection, request):
@@ -148,7 +189,10 @@ class App:
             return http(200, json.dumps({"app": "s3000-workbench", "version": VERSION}).encode(), "application/json")
         if path == "/show":
             if not self.args.no_window:
-                open_window(self.url)
+                if self.idle_exit:
+                    open_window(self.url)
+                else:
+                    bring_to_front()                                 # the built-in window is a single window
             return http(200, b"ok", "text/plain")
         return http(404, b"Not found", "text/plain")
 
@@ -204,24 +248,64 @@ class App:
             log.info("Window disconnected")
             if not self.clients:
                 self.cap.close()
-                self.idle_task = asyncio.create_task(self.exit_after(IDLE_EXIT))
+                if self.idle_exit:
+                    self.idle_task = asyncio.create_task(self.exit_after(IDLE_EXIT))
 
     async def exit_after(self, seconds):
         await asyncio.sleep(seconds)
-        if not self.clients and not self.args.stay:
+        if not self.clients and not self.args.stay and self.idle_exit:
             log.info("No window open; exiting")
-            self.done.set_result(None)
+            self.stop()
 
-    async def run(self):
-        self.done = asyncio.get_running_loop().create_future()
-        async with serve(self.handler, "127.0.0.1", self.args.port, process_request=self.process_request,
-                         max_size=None, ping_interval=20):
-            log.info("%s %s running at %s%s", APP_NAME, VERSION, self.url, " (test tone)" if self.args.fake else "")
-            if not self.args.no_window:
-                open_window(self.url)
-            self.idle_task = asyncio.create_task(self.exit_after(FIRST_WINDOW_WAIT))
-            await self.done
-        self.cap.close()
+    def stop(self):
+        """Safe to call from any thread."""
+        if self.loop and self.done and not self.done.done():
+            self.loop.call_soon_threadsafe(lambda: self.done.done() or self.done.set_result(None))
+
+    async def serve(self, ready):
+        self.loop = asyncio.get_running_loop()
+        self.done = self.loop.create_future()
+        try:
+            async with serve(self.handler, "127.0.0.1", self.args.port, process_request=self.process_request,
+                             max_size=None, ping_interval=20):
+                log.info("%s %s running at %s%s", APP_NAME, VERSION, self.url, " (test tone)" if self.args.fake else "")
+                ready.set()
+                if self.idle_exit:
+                    self.idle_task = asyncio.create_task(self.exit_after(FIRST_WINDOW_WAIT))
+                await self.done
+        finally:
+            ready.set()
+            self.cap.close()
+
+    def run(self):
+        """Server on a background thread; the window (which must own the main thread) in front of it."""
+        self.loop = self.done = None
+        builtin = not self.args.no_window and not self.args.edge
+        self.idle_exit = not builtin              # the built-in window ends the program itself when closed
+        ready, errors = threading.Event(), []
+
+        def server():
+            try:
+                asyncio.run(self.serve(ready))
+            except Exception as e:
+                errors.append(e)
+                ready.set()
+
+        t = threading.Thread(target=server, daemon=True)
+        t.start()
+        ready.wait()
+        if errors:
+            raise errors[0]
+        if builtin and run_webview(self.url, self.stop):
+            t.join(timeout=5)
+            return
+        if not self.args.no_window:               # Edge app window: exits a few seconds after it closes
+            self.idle_exit = True
+            self.loop.call_soon_threadsafe(lambda: setattr(self, "idle_task", self.loop.create_task(self.exit_after(FIRST_WINDOW_WAIT))))
+            open_window(self.url)
+        t.join()
+        if errors:
+            raise errors[0]
 
 
 def already_running(port):
@@ -240,6 +324,7 @@ def main():
     ap = argparse.ArgumentParser(description=APP_NAME)
     ap.add_argument("--fake", action="store_true", help="test tone instead of ASIO")
     ap.add_argument("--no-window", action="store_true", help="do not open the app window")
+    ap.add_argument("--edge", action="store_true", help="use an Edge app window instead of the built-in window")
     ap.add_argument("--stay", action="store_true", help="keep running after the window closes")
     ap.add_argument("--port", type=int, default=PORT)
     args = ap.parse_args()
@@ -252,7 +337,7 @@ def main():
     if already_running(args.port):
         return
     try:
-        asyncio.run(App(args).run())
+        App(args).run()
     except OSError as e:
         message_box("%s could not start: port %d on this computer is in use by another program (%s)." % (APP_NAME, args.port, e))
     except Exception as e:

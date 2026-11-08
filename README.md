@@ -10,8 +10,9 @@ and auto-sample synths through your sound card's **ASIO** driver.
 3. The first time, Windows may show **"Windows protected your PC"** because the program is not code-signed.
    Click **More info › Run anyway**.
 
-Start it from the Start menu or the desktop shortcut. The Workbench opens in its own window.
-Closing the window closes the program.
+Start it from the Start menu or the desktop shortcut. The Workbench opens in the program's own window
+(WebView2, the Edge engine built into Windows), with no browser sign-in or sync prompts. Closing the window
+closes the program. If WebView2 is missing, it falls back to an Edge app window; `--edge` forces that.
 
 ## Auto sampling through ASIO
 
@@ -43,8 +44,9 @@ The version number is `VERSION` in `app/s3000_workbench.py`.
 ## How it works
 
 `app/s3000_workbench.py` serves the Workbench page on `127.0.0.1:8741` (this computer only), records through
-ASIO with [sounddevice](https://python-sounddevice.readthedocs.io/) (PortAudio built with ASIO support), and opens
-the page in Microsoft Edge's app mode with its own profile. It only accepts connections from its own window.
+ASIO with [sounddevice](https://python-sounddevice.readthedocs.io/) (PortAudio built with ASIO support), and shows
+the page in a [pywebview](https://pywebview.flowrl.com/) WebView2 window. It only accepts connections from its own window.
+The MIDI keyboard and MIDI send ports you choose are remembered.
 
 ASIO is a trademark and software of Steinberg Media Technologies GmbH. If you distribute this program publicly,
 check the current ASIO licensing terms.

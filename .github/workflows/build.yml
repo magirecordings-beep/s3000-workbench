@@ -48,6 +48,20 @@ jobs:
           Stop-Process -Id $p.Id -Force
           Write-Host "Smoke test passed"
 
+      - name: Window test (opens the built-in window and checks the page loads in it)
+        shell: pwsh
+        run: |
+          $log = "$env:LOCALAPPDATA\S3000 Workbench\log.txt"
+          Remove-Item $log -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath "dist\S3000 Workbench\S3000 Workbench.exe" -ArgumentList "--fake" -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60 -and -not $ok; $i++) { Start-Sleep -Seconds 1; if (Test-Path $log) { $ok = (Get-Content $log -Raw) -match 'Window connected' } }
+          Get-Content $log -ErrorAction SilentlyContinue
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "The window did not load the Workbench" }
+          if ((Get-Content $log -Raw) -match 'using an Edge window|Built-in window failed') { Write-Host "::warning::The built-in window did not start on the build machine; the Edge fallback was used" }
+          else { Write-Host "Built-in window loaded the Workbench" }
+
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 

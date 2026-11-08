@@ -5,6 +5,11 @@ datas, binaries, hiddenimports = [("app/workbench.html", ".")], [], ["sounddevic
 # PortAudio DLLs that ship with sounddevice, including the build with ASIO support
 d, b, h = collect_all("_sounddevice_data")
 datas += d; binaries += b; hiddenimports += h
+# the built-in window: pywebview with the WebView2 (Edge) backend, through pythonnet
+for pkg in ("webview", "clr_loader", "pythonnet"):
+    d, b, h = collect_all(pkg)
+    datas += d; binaries += b; hiddenimports += h
+hiddenimports += ["clr", "webview.platforms.edgechromium", "webview.platforms.winforms"]
 
 a = Analysis(["app/s3000_workbench.py"], pathex=["app"], binaries=binaries, datas=datas,
              hiddenimports=hiddenimports, excludes=["tkinter", "matplotlib", "PIL", "pytest"], noarchive=False)
