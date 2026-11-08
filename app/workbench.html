@@ -78,6 +78,7 @@ canvas{display:block;width:100%;height:100%}
 .row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:6px;align-items:center;margin:4px 0}
 .row span:first-child{color:var(--dim);font-size:13px}
 .row .nn{font:12px var(--font-m);color:var(--dim);min-width:3.5ch}
+.row>input,.row>select{width:100%;min-width:0;box-sizing:border-box}
 .warn{color:var(--warn);font-size:12.5px;margin:4px 0}
 .ok{color:var(--ok)}
 .zones{display:flex;gap:2px;margin:6px 0}
@@ -137,6 +138,46 @@ code{font:12.5px var(--font-m);background:var(--panel2);padding:1px 4px;border-r
 .amem{display:grid;gap:4px;margin:8px 0}
 .atrack{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:2px;overflow:hidden}
 .afill2{height:100%;background:var(--ok)}.afill2.over{background:var(--accent)}
+/* grouped parameter sections in the Programs inspector */
+/* sample process tools */
+.toolbar .tbreak{flex-basis:100%;height:0}
+.toolbar button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.procpanel{border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:8px 10px;display:grid;gap:8px}
+.prochead,.procrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.procrow .inl{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--dim)}
+.procrow input[type=number]{width:6em}
+.eqbands{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:560px}
+.eqband{display:grid;justify-items:center;gap:4px;font:11px var(--font-m);color:var(--dim)}
+.eqband input[type=range]{writing-mode:vertical-lr;direction:rtl;height:110px;width:22px;accent-color:var(--accent)}
+.eqband output{font:12px var(--font-m);color:var(--ink);min-height:1.2em}
+.speccanvas{width:100%;height:220px;display:block;border-radius:2px}
+/* Quick Access table */
+.qa-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--panel)}
+table.qa{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+table.qa th,table.qa td{padding:4px 5px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.qa thead th{position:sticky;top:0;background:var(--panel2);font:600 11px var(--font-d,inherit);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+table.qa tbody th{font-weight:500;text-transform:none;letter-spacing:0}
+table.qa tr.cur{box-shadow:inset 3px 0 0 var(--accent)}
+table.qa td.num{color:var(--dim);text-align:right}
+table.qa input[type=number]{width:4.4em;padding:3px 4px}
+table.qa th[scope=row],table.qa thead th:first-child{position:sticky;left:0;z-index:1;background:var(--panel);box-shadow:1px 0 0 var(--line)}
+table.qa thead th:first-child{z-index:2;background:var(--panel2)}
+table.qa .nn{font:11px var(--font-m);color:var(--dim)}
+table.qa select{max-width:9em;padding:3px 2px}
+.linkish{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.linkish:hover{text-decoration-color:var(--accent)}
+.qa-flag{font:11px var(--font-m);color:var(--warn)}
+.pgroup{border-top:1px solid var(--line);padding:2px 0}
+.pgroup>summary{cursor:pointer;list-style:none;font:600 12px var(--font-d,inherit);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:7px 0;display:flex;align-items:center;gap:6px}
+.pgroup>summary::-webkit-details-marker{display:none}
+.pgroup>summary::before{content:'';width:0;height:0;border:4px solid transparent;border-left-color:currentColor;transition:transform .12s}
+.pgroup[open]>summary::before{transform:rotate(90deg) translateX(2px)}
+.pgroup>summary:hover{color:var(--ink)}
+.pgroup>.hint{margin:0 0 6px}
+.tgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin:4px 0 6px}
+.tcell{display:grid;gap:2px;font-size:11px;color:var(--dim);text-align:center}
+.tcell input{width:100%;text-align:center;padding:3px 2px}
+@media (prefers-reduced-motion:reduce){.pgroup>summary::before{transition:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -173,6 +214,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);padding:1px 4px;border-r
       <div id="sEmpty" class="empty"><h2>No sample open</h2><p>Open an .a3s saved from your S3000XL, or a WAV to turn into one.</p></div>
       <div id="editor" hidden>
         <div class="toolbar" id="toolbar"></div>
+        <div class="procpanel" id="procPanel" hidden></div>
         <div class="wavewrap"><canvas id="wave" aria-label="Waveform"></canvas></div>
         <input type="range" id="scroll" min="0" max="0" value="0" aria-label="Scroll waveform">
         <div class="readout" id="readout"></div>
@@ -446,7 +488,7 @@ function parseSample(buf) {
   }
   return {
     id: 3, bandwidth: u8[1], pitch: u8[2], name: decodeName(u8, 3), playType: u8[0x13],
-    tuneFrac: u8[0x14], tuneCents: u8[0x15] << 24 >> 24, rate: dv.getUint16(0x8a, true) || 44100,
+    tuneFrac: 0, tuneCents: Math.round(dv.getInt16(0x14, true) * 100 / 256), rate: dv.getUint16(0x8a, true) || 44100,
     playStart: dv.getUint32(0x1e, true), playEnd: dv.getUint32(0x22, true),
     loops: loops, data: data, raw: u8.slice(0, hdr), warnings: warnings, fromS1000: fromS1000
   };
@@ -459,8 +501,8 @@ function writeSample(s) {
   var n = s.data.length;
   hdr[0] = 3; hdr[1] = s.bandwidth; hdr[2] = clamp(s.pitch, 0, 127);
   encodeName(hdr, 3, s.name);
-  hdr[0x0f] = 0x80; hdr[0x13] = s.playType; hdr[0x14] = s.tuneFrac || 0;
-  dv.setInt8(0x15, clamp(s.tuneCents, -128, 127));
+  hdr[0x0f] = 0x80; hdr[0x13] = s.playType;
+  dv.setInt16(0x14, tuneRaw(s.tuneCents), true);   // STUNO: 1/256 semitone, set on a 1-cent grid
   dv.setUint32(0x1a, n, true);
   dv.setUint32(0x1e, clamp(s.playStart, 0, Math.max(0, n - 1)), true);
   dv.setUint32(0x22, clamp(s.playEnd, 0, Math.max(0, n - 1)), true);
@@ -561,60 +603,165 @@ function resample(data, from, to) {
   return out;
 }
 
-/* ---------- programs ---------- */
+/* ---------- programs ----------
+   Offsets and ranges follow the S2800/S3000/S3200 and S2000/S3000XL SysEx specifications, cross-checked against
+   s3ked's hardware-measured tables. Field kinds: u8 / i8 one byte; tune = signed 16-bit in 1/256 semitone, shown in
+   cents; i16 = signed 16-bit. disp is added for display (the sampler shows polyphony and program numbers from 1).
+   vals turns a field into a menu. */
+var MOD_SOURCES = { 0: 'None', 1: 'Mod wheel', 2: 'Pitch bend', 3: 'Aftertouch', 4: 'External', 5: 'Velocity', 6: 'Key',
+  7: 'LFO 1', 8: 'LFO 2', 9: 'Envelope 1', 10: 'Envelope 2', 11: 'Mod wheel (at note-on)', 12: 'Pitch bend (at note-on)',
+  13: 'External (at note-on)', 14: 'Envelope 3' };
+var ONOFF = { 0: 'Off', 1: 'On' };
+var LFO_WAVES = { 0: 'Triangle', 1: 'Sawtooth', 2: 'Square', 3: 'Random' };
+var PROG_OUTPUTS = { 255: 'Off', 0: 'Output 1', 1: 'Output 2', 2: 'Output 3', 3: 'Output 4', 4: 'Output 5', 5: 'Output 6',
+  6: 'Output 7', 7: 'Output 8', 8: 'FX' };
+var FX_BUS = { 0: 'Off', 1: 'FX1', 2: 'FX2', 3: 'RV3', 4: 'RV4' };
 var PROG_FIELDS = [
-  { k: 'midiProg', off: 0x0f, t: 'u8', min: 0, max: 127, label: 'MIDI program number' },
-  { k: 'midiChan', off: 0x10, t: 'u8', min: 0, max: 255, label: 'MIDI channel (0-15, 255 = omni)' },
-  { k: 'poly', off: 0x11, t: 'u8', min: 1, max: 32, label: 'Polyphony' },
-  { k: 'priority', off: 0x12, t: 'u8', min: 0, max: 3, label: 'Priority (0 low, 1 normal, 2 high, 3 hold)' },
-  { k: 'rangeLow', off: 0x13, t: 'u8', min: 24, max: 127, label: 'Play range low', note: true },
-  { k: 'rangeHigh', off: 0x14, t: 'u8', min: 24, max: 127, label: 'Play range high', note: true },
-  { k: 'octave', off: 0x15, t: 'i8', min: -2, max: 2, label: 'Octave shift' },
-  { k: 'output', off: 0x16, t: 'u8', min: 0, max: 255, label: 'Output (0-7, 255 = off)' },
-  { k: 'level', off: 0x17, t: 'u8', min: 0, max: 99, label: 'Stereo level' },
-  { k: 'pan', off: 0x18, t: 'i8', min: -50, max: 50, label: 'Pan' },
-  { k: 'loud', off: 0x19, t: 'u8', min: 0, max: 99, label: 'Loudness' },
-  { k: 'velLoud', off: 0x1a, t: 'i8', min: -50, max: 50, label: 'Velocity to loudness' },
-  { k: 'bend', off: 0x27, t: 'u8', min: 0, max: 12, label: 'Bend wheel to pitch (semitones)' },
-  { k: 'xfade', off: 0x29, t: 'u8', min: 0, max: 1, label: 'Keygroup crossfade (0 off, 1 on)' }
+  { g: 'MIDI and voices', k: 'midiProg', off: 0x0f, t: 'u8', min: 0, max: 127, disp: 1, label: 'MIDI program number' },
+  { g: 'MIDI and voices', k: 'midiChan', off: 0x10, t: 'u8', min: 0, max: 255, label: 'MIDI channel', vals: midiChans() },
+  { g: 'MIDI and voices', k: 'poly', off: 0x11, t: 'u8', min: 0, max: 31, disp: 1, label: 'Polyphony (voices)' },
+  { g: 'MIDI and voices', k: 'priority', off: 0x12, t: 'u8', min: 0, max: 3, label: 'Priority', vals: { 0: 'Low', 1: 'Normal', 2: 'High', 3: 'Hold' } },
+  { g: 'MIDI and voices', k: 'steal', off: 0x3d, t: 'u8', min: 0, max: 1, label: 'Voice stealing', vals: { 0: 'Oldest note', 1: 'Quietest note' } },
+  { g: 'MIDI and voices', k: 'legato', off: 0x48, t: 'u8', min: 0, max: 1, label: 'Mono legato', vals: ONOFF },
+  { g: 'MIDI and voices', k: 'rangeLow', off: 0x13, t: 'u8', min: 21, max: 127, label: 'Play range low', note: true },
+  { g: 'MIDI and voices', k: 'rangeHigh', off: 0x14, t: 'u8', min: 21, max: 127, label: 'Play range high', note: true },
+  { g: 'MIDI and voices', k: 'transpose', off: 0x4b, t: 'i8', min: -50, max: 50, label: 'Transpose (semitones)' },
+  { g: 'Output', k: 'output', off: 0x16, t: 'u8', min: 0, max: 255, label: 'Individual output', vals: PROG_OUTPUTS },
+  { g: 'Output', k: 'outLevel', off: 0x46, t: 'u8', min: 0, max: 99, label: 'Individual output level' },
+  { g: 'Output', k: 'fxBus', off: 0x71, t: 'u8', min: 0, max: 4, label: 'Effects bus (EB16)', vals: FX_BUS },
+  { g: 'Output', k: 'level', off: 0x17, t: 'u8', min: 0, max: 99, label: 'Stereo level' },
+  { g: 'Output', k: 'pan', off: 0x18, t: 'i8', min: -50, max: 50, label: 'Pan' },
+  { g: 'Output', k: 'loud', off: 0x19, t: 'u8', min: 0, max: 99, label: 'Loudness' },
+  { g: 'Output', k: 'velLoud', off: 0x1a, t: 'i8', min: -50, max: 50, label: 'Velocity to loudness' },
+  { g: 'Pitch', k: 'tune', off: 0x41, t: 'tune', min: -5000, max: 5000, label: 'Tune (cents)' },
+  { g: 'Pitch', k: 'bend', off: 0x27, t: 'u8', min: 0, max: 24, label: 'Bend up (semitones)' },
+  { g: 'Pitch', k: 'bendDown', off: 0x49, t: 'u8', min: 0, max: 12, label: 'Bend down (semitones)' },
+  { g: 'Pitch', k: 'bendMode', off: 0x4a, t: 'u8', min: 0, max: 1, label: 'Bend held notes', vals: { 0: 'Normal', 1: 'Held' } },
+  { g: 'Pitch', k: 'presPitch', off: 0x28, t: 'i8', min: -12, max: 12, label: 'Aftertouch to pitch (semitones)' },
+  { g: 'Pitch', k: 'xfade', off: 0x29, t: 'u8', min: 0, max: 1, label: 'Keygroup crossfade', vals: ONOFF },
+  { g: 'LFO 1', k: 'lfo1Wave', off: 0x61, t: 'u8', min: 0, max: 3, label: 'Waveform', vals: LFO_WAVES },
+  { g: 'LFO 1', k: 'lfo1Rate', off: 0x21, t: 'u8', min: 0, max: 99, label: 'Speed' },
+  { g: 'LFO 1', k: 'lfo1Depth', off: 0x22, t: 'u8', min: 0, max: 99, label: 'Depth' },
+  { g: 'LFO 1', k: 'lfo1Delay', off: 0x23, t: 'u8', min: 0, max: 99, label: 'Delay' },
+  { g: 'LFO 1', k: 'lfo1Desync', off: 0x3b, t: 'u8', min: 0, max: 1, label: 'Desync across notes', vals: ONOFF },
+  { g: 'LFO 1', k: 'mwDepth', off: 0x24, t: 'u8', min: 0, max: 99, label: 'Mod wheel to depth' },
+  { g: 'LFO 1', k: 'atDepth', off: 0x25, t: 'u8', min: 0, max: 99, label: 'Aftertouch to depth' },
+  { g: 'LFO 1', k: 'velDepth', off: 0x26, t: 'u8', min: 0, max: 99, label: 'Velocity to depth' },
+  { g: 'LFO 1', k: 'srcLfoRate', off: 0x51, t: 'u8', min: 0, max: 255, label: 'Speed modulated by', vals: MOD_SOURCES },
+  { g: 'LFO 1', k: 'amtLfoRate', off: 0x5e, t: 'i8', min: -50, max: 50, label: 'Speed modulation amount' },
+  { g: 'LFO 1', k: 'srcLfoDepth', off: 0x52, t: 'u8', min: 0, max: 255, label: 'Depth modulated by', vals: MOD_SOURCES },
+  { g: 'LFO 1', k: 'amtLfoDepth', off: 0x5f, t: 'i8', min: -50, max: 50, label: 'Depth modulation amount' },
+  { g: 'LFO 1', k: 'srcLfoDelay', off: 0x53, t: 'u8', min: 0, max: 255, label: 'Delay modulated by', vals: MOD_SOURCES },
+  { g: 'LFO 1', k: 'amtLfoDelay', off: 0x60, t: 'i8', min: -50, max: 50, label: 'Delay modulation amount' },
+  { g: 'LFO 2', k: 'lfo2Wave', off: 0x62, t: 'u8', min: 0, max: 3, label: 'Waveform', vals: LFO_WAVES },
+  { g: 'LFO 2', k: 'lfo2Rate', off: 0x1d, t: 'u8', min: 0, max: 99, label: 'Speed' },
+  { g: 'LFO 2', k: 'lfo2Depth', off: 0x1e, t: 'u8', min: 0, max: 99, label: 'Depth' },
+  { g: 'LFO 2', k: 'lfo2Delay', off: 0x1f, t: 'u8', min: 0, max: 99, label: 'Delay' },
+  { g: 'LFO 2', k: 'lfo2Trig', off: 0x66, t: 'u8', min: 0, max: 255, label: 'Retrigger', vals: { 0: 'Free running', 1: 'Restart at each note' } },
+  { g: 'Portamento', k: 'portOn', off: 0x70, t: 'u8', min: 0, max: 1, label: 'Portamento', vals: ONOFF },
+  { g: 'Portamento', k: 'portType', off: 0x6f, t: 'u8', min: 0, max: 1, label: 'Mode (rate or time)', vals: { 0: 'Mode 0', 1: 'Mode 1' } },
+  { g: 'Portamento', k: 'portTime', off: 0x6e, t: 'u8', min: 0, max: 99, label: 'Time' },
+  { g: 'Modulation', k: 'srcPan1', off: 0x4c, t: 'u8', min: 0, max: 255, label: 'Pan source 1', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'amtPan1', off: 0x59, t: 'i8', min: -50, max: 50, label: 'Pan amount 1' },
+  { g: 'Modulation', k: 'srcPan2', off: 0x4d, t: 'u8', min: 0, max: 255, label: 'Pan source 2', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'amtPan2', off: 0x5a, t: 'i8', min: -50, max: 50, label: 'Pan amount 2' },
+  { g: 'Modulation', k: 'srcPan3', off: 0x4e, t: 'u8', min: 0, max: 255, label: 'Pan source 3', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'amtPan3', off: 0x5b, t: 'i8', min: -50, max: 50, label: 'Pan amount 3' },
+  { g: 'Modulation', k: 'srcAmp1', off: 0x4f, t: 'u8', min: 0, max: 255, label: 'Loudness source 1', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'amtAmp1', off: 0x5c, t: 'i8', min: -50, max: 50, label: 'Loudness amount 1' },
+  { g: 'Modulation', k: 'srcAmp2', off: 0x50, t: 'u8', min: 0, max: 255, label: 'Loudness source 2', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'amtAmp2', off: 0x5d, t: 'i8', min: -50, max: 50, label: 'Loudness amount 2' },
+  { g: 'Modulation', k: 'srcAmp3', off: 0x58, t: 'u8', min: 0, max: 255, label: 'Loudness source 3 (amount per keygroup)', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'srcFilt1', off: 0x54, t: 'u8', min: 0, max: 255, label: 'Filter source 1 (amount per keygroup)', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'srcFilt2', off: 0x55, t: 'u8', min: 0, max: 255, label: 'Filter source 2 (amount per keygroup)', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'srcFilt3', off: 0x56, t: 'u8', min: 0, max: 255, label: 'Filter source 3 (amount per keygroup)', vals: MOD_SOURCES },
+  { g: 'Modulation', k: 'srcPitch', off: 0x57, t: 'u8', min: 0, max: 255, label: 'Pitch source (amount per keygroup)', vals: MOD_SOURCES },
+  { g: 'Soft pedal', k: 'spLoud', off: 0x3e, t: 'u8', min: 0, max: 99, label: 'Loudness reduction' },
+  { g: 'Soft pedal', k: 'spAtt', off: 0x3f, t: 'u8', min: 0, max: 99, label: 'Attack stretch' },
+  { g: 'Soft pedal', k: 'spFilt', off: 0x40, t: 'u8', min: 0, max: 99, label: 'Filter reduction' }
 ];
+var TEMPER_OFF = 0x2c;   // 12 signed bytes, -50..+50 cents, C to B
+function midiChans() { var v = { 255: 'Omni' }; for (var c = 0; c < 16; c++) v[c] = String(c + 1); return v; }
 var KG_FIELDS = [
-  { g: 'Range and tune', k: 'low', off: 3, t: 'u8', min: 24, max: 127, label: 'Low key', note: true },
-  { g: 'Range and tune', k: 'high', off: 4, t: 'u8', min: 24, max: 127, label: 'High key', note: true },
-  { g: 'Range and tune', k: 'tuneC', off: 5, t: 'i8', min: -50, max: 50, label: 'Tune (cents)' },
-  { g: 'Range and tune', k: 'tuneS', off: 6, t: 'i8', min: -50, max: 50, label: 'Tune (semitones)' },
+  { g: 'Range and tune', k: 'low', off: 3, t: 'u8', min: 21, max: 127, label: 'Low key', note: true },
+  { g: 'Range and tune', k: 'high', off: 4, t: 'u8', min: 21, max: 127, label: 'High key', note: true },
+  { g: 'Range and tune', k: 'tune', off: 5, t: 'tune', min: -5000, max: 5000, label: 'Tune (cents)' },
+  { g: 'Range and tune', k: 'beat', off: 0x82, t: 'i8', min: -50, max: 50, label: 'Beat (fixed-rate detune)' },
+  { g: 'Range and tune', k: 'lfoPitch', off: 0x96, t: 'i8', min: -50, max: 50, label: 'LFO 1 to pitch' },
+  { g: 'Range and tune', k: 'modPitch', off: 0x9a, t: 'i8', min: -50, max: 50, label: 'Pitch source amount' },
+  { g: 'Range and tune', k: 'mute', off: 0xa0, t: 'u8', min: 0, max: 255, label: 'Mute group', vals: muteGroups() },
+  { g: 'Range and tune', k: 'velXfade', off: 0x1e, t: 'u8', min: 0, max: 1, label: 'Velocity zone crossfade', vals: ONOFF },
+  { g: 'Range and tune', k: 'attackHold', off: 0x83, t: 'u8', min: 0, max: 1, label: 'Hold attack until loop', vals: ONOFF },
   { g: 'Filter', k: 'filter', off: 7, t: 'u8', min: 0, max: 99, label: 'Cutoff' },
-  { g: 'Filter', k: 'keyFilt', off: 8, t: 'i8', min: -50, max: 50, label: 'Key to cutoff' },
+  { g: 'Filter', k: 'res', off: 0x95, t: 'u8', min: 0, max: 15, label: 'Resonance' },
+  { g: 'Filter', k: 'keyFilt', off: 8, t: 'i8', min: -30, max: 99, label: 'Key to cutoff' },
   { g: 'Filter', k: 'velFilt', off: 9, t: 'i8', min: -50, max: 50, label: 'Velocity to cutoff' },
-  { g: 'Filter', k: 'presFilt', off: 0x0a, t: 'i8', min: -50, max: 50, label: 'Pressure to cutoff' },
-  { g: 'Filter', k: 'envFilt', off: 0x0b, t: 'i8', min: -50, max: 50, label: 'Envelope to cutoff' },
+  { g: 'Filter', k: 'presFilt', off: 0x0a, t: 'i8', min: -50, max: 50, label: 'Aftertouch to cutoff' },
+  { g: 'Filter', k: 'envFilt', off: 0x0b, t: 'i8', min: -50, max: 50, label: 'Envelope 2 to cutoff' },
+  { g: 'Filter', k: 'modFilt1', off: 0x97, t: 'i8', min: -50, max: 50, label: 'Filter source 1 amount' },
+  { g: 'Filter', k: 'modFilt2', off: 0x98, t: 'i8', min: -50, max: 50, label: 'Filter source 2 amount' },
+  { g: 'Filter', k: 'modFilt3', off: 0x99, t: 'i8', min: -50, max: 50, label: 'Filter source 3 amount' },
   { g: 'Amp envelope', k: 'ampA', off: 0x0c, t: 'u8', min: 0, max: 99, label: 'Attack' },
   { g: 'Amp envelope', k: 'ampD', off: 0x0d, t: 'u8', min: 0, max: 99, label: 'Decay' },
   { g: 'Amp envelope', k: 'ampS', off: 0x0e, t: 'u8', min: 0, max: 99, label: 'Sustain' },
   { g: 'Amp envelope', k: 'ampR', off: 0x0f, t: 'u8', min: 0, max: 99, label: 'Release' },
   { g: 'Amp envelope', k: 'velAmpA', off: 0x10, t: 'i8', min: -50, max: 50, label: 'Velocity to attack' },
   { g: 'Amp envelope', k: 'velAmpR', off: 0x11, t: 'i8', min: -50, max: 50, label: 'Velocity to release' },
-  { g: 'Filter envelope', k: 'filtA', off: 0x14, t: 'u8', min: 0, max: 99, label: 'Attack' },
-  { g: 'Filter envelope', k: 'filtD', off: 0x15, t: 'u8', min: 0, max: 99, label: 'Decay' },
-  { g: 'Filter envelope', k: 'filtS', off: 0x16, t: 'u8', min: 0, max: 99, label: 'Sustain' },
-  { g: 'Filter envelope', k: 'filtR', off: 0x17, t: 'u8', min: 0, max: 99, label: 'Release' },
-  { g: 'Filter envelope', k: 'velFiltEnv', off: 0x1c, t: 'i8', min: -50, max: 50, label: 'Velocity to envelope depth' },
-  { g: 'Filter envelope', k: 'envPitch', off: 0x1d, t: 'i8', min: -50, max: 50, label: 'Envelope to pitch' }
+  { g: 'Amp envelope', k: 'offAmpR', off: 0x12, t: 'i8', min: -50, max: 50, label: 'Release velocity to release' },
+  { g: 'Amp envelope', k: 'keyAmpDR', off: 0x13, t: 'i8', min: -50, max: 50, label: 'Key to decay and release' },
+  { g: 'Amp envelope', k: 'modAmp3', off: 0x9b, t: 'i8', min: -50, max: 99, label: 'Loudness source 3 amount' },
+  { g: 'Envelope 2', k: 'filtA', off: 0x14, t: 'u8', min: 0, max: 99, label: 'Rate 1 (attack)' },
+  { g: 'Envelope 2', k: 'env2L1', off: 0x9c, t: 'u8', min: 0, max: 99, label: 'Level 1' },
+  { g: 'Envelope 2', k: 'env2R2', off: 0x9d, t: 'u8', min: 0, max: 99, label: 'Rate 2' },
+  { g: 'Envelope 2', k: 'env2L2', off: 0x9e, t: 'u8', min: 0, max: 99, label: 'Level 2' },
+  { g: 'Envelope 2', k: 'filtD', off: 0x15, t: 'u8', min: 0, max: 99, label: 'Rate 3 (decay)' },
+  { g: 'Envelope 2', k: 'filtS', off: 0x16, t: 'u8', min: 0, max: 99, label: 'Level 3 (sustain)' },
+  { g: 'Envelope 2', k: 'filtR', off: 0x17, t: 'u8', min: 0, max: 99, label: 'Rate 4 (release)' },
+  { g: 'Envelope 2', k: 'env2L4', off: 0x9f, t: 'u8', min: 0, max: 99, label: 'Level 4 (end)' },
+  { g: 'Envelope 2', k: 'velEnv2A', off: 0x18, t: 'i8', min: -50, max: 50, label: 'Velocity to attack' },
+  { g: 'Envelope 2', k: 'velEnv2R', off: 0x19, t: 'i8', min: -50, max: 50, label: 'Velocity to release' },
+  { g: 'Envelope 2', k: 'offEnv2R', off: 0x1a, t: 'i8', min: -50, max: 50, label: 'Release velocity to release' },
+  { g: 'Envelope 2', k: 'keyEnv2DR', off: 0x1b, t: 'i8', min: -50, max: 50, label: 'Key to decay and release' },
+  { g: 'Envelope 2', k: 'velFiltEnv', off: 0x1c, t: 'i8', min: -50, max: 50, label: 'Velocity to envelope depth' },
+  { g: 'Envelope 2', k: 'envPitch', off: 0x1d, t: 'i8', min: -50, max: 50, label: 'Envelope 2 to pitch' },
+  { g: 'Effects (EB16)', k: 'kfxBus', off: 0xa1, t: 'u8', min: 0, max: 5, label: 'Effects bus', vals: { 0: 'As program', 1: 'Off', 2: 'FX1', 3: 'FX2', 4: 'RV3', 5: 'RV4' } },
+  { g: 'Effects (EB16)', k: 'kfxSend', off: 0xa2, t: 'u8', min: 0, max: 99, label: 'Effects send level' }
 ];
+function muteGroups() { var v = { 255: 'Off' }; for (var g = 0; g < 32; g++) v[g] = 'Group ' + g; return v; }
+/* Zone fields: base is the zone's 24-byte block. zoff fields live in the keygroup's common area, one byte (or two) per zone. */
 var ZONE_FIELDS = [
   { k: 'velLow', off: 12, t: 'u8', min: 0, max: 127, label: 'Velocity low' },
   { k: 'velHigh', off: 13, t: 'u8', min: 0, max: 127, label: 'Velocity high' },
-  { k: 'tuneC', off: 14, t: 'i8', min: -50, max: 50, label: 'Tune (cents)' },
-  { k: 'tuneS', off: 15, t: 'i8', min: -50, max: 50, label: 'Tune (semitones)' },
+  { k: 'tune', off: 14, t: 'tune', min: -5000, max: 5000, label: 'Tune (cents)' },
   { k: 'loud', off: 16, t: 'i8', min: -50, max: 50, label: 'Loudness offset' },
   { k: 'filt', off: 17, t: 'i8', min: -50, max: 50, label: 'Cutoff offset' },
   { k: 'pan', off: 18, t: 'i8', min: -50, max: 50, label: 'Pan offset' },
-  { k: 'loopRel', off: 19, t: 'u8', min: 0, max: 1, label: 'Loop in release (0 off, 1 on)' }
+  { k: 'play', off: 19, t: 'u8', min: 0, max: 4, label: 'Playback',
+    vals: { 0: 'As sample', 1: 'Loop in release', 2: 'Loop until release', 3: 'No loops', 4: 'Play to sample end' } }
 ];
-function fget(u8, f, base) { var v = u8[(base || 0) + f.off]; return f.t === 'i8' ? (v << 24 >> 24) : v; }
-function fset(u8, f, v, base) {
-  v = clamp(Math.round(+v || 0), f.min, f.max);
-  u8[(base || 0) + f.off] = v & 255; return v;
+var ZONE_EXTRA = [
+  { k: 'constPitch', zoff: function (z) { return 0x84 + z; }, t: 'u8', min: 0, max: 1, label: 'Pitch', vals: { 0: 'Tracks the keyboard', 1: 'Constant' } },
+  { k: 'zoneOut', zoff: function (z) { return 0x88 + z; }, t: 'u8', min: 0, max: 10, label: 'Output offset' },
+  { k: 'velStart', zoff: function (z) { return 0x8c + 2 * z; }, t: 'i16', min: -9999, max: 9999, label: 'Velocity to start (samples)' }
+];
+function tuneRaw(cents) { return clamp(Math.trunc(Math.round(+cents || 0) * 2.56), -12800, 12800); }
+function tuneCents(raw) { return Math.round(raw * 100 / 256); }
+function fpos(f, base, z) { return f.zoff ? f.zoff(z) : (base || 0) + f.off; }
+function fget(u8, f, base, z) {
+  var o = fpos(f, base, z), v;
+  if (f.t === 'tune' || f.t === 'i16') { v = (u8[o] | (u8[o + 1] << 8)) << 16 >> 16; return f.t === 'tune' ? tuneCents(v) : v; }
+  v = u8[o]; if (f.t === 'i8') v = v << 24 >> 24;
+  return v + (f.disp || 0);
+}
+function fset(u8, f, v, base, z) {
+  var o = fpos(f, base, z), lo = f.min + (f.disp || 0), hi = f.max + (f.disp || 0);
+  v = clamp(Math.round(+v || 0), lo, hi);
+  if (f.t === 'tune' || f.t === 'i16') {
+    var raw = f.t === 'tune' ? tuneRaw(v) : v;
+    u8[o] = raw & 255; u8[o + 1] = (raw >> 8) & 255;
+    return f.t === 'tune' ? tuneCents(raw) : v;
+  }
+  u8[o] = (v - (f.disp || 0)) & 255; return v;
 }
 function zoneBase(z) { return ZONE0 + ZONE_SZ * z; }
 function zoneName(kg, z) { return decodeName(kg, zoneBase(z)); }
@@ -632,6 +779,8 @@ function newKeygroup(sampleName, low, high) {
   k[0] = 2; k[3] = low == null ? 24 : low; k[4] = high == null ? 127 : high;
   k[7] = 99; k[0x0c] = 0; k[0x0d] = 50; k[0x0e] = 99; k[0x0f] = 45;
   k[0x14] = 0; k[0x15] = 50; k[0x16] = 99; k[0x17] = 45; k[0x1c] = 25; k[0x1e] = 1; k[0x1f] = 1;
+  k[0x9c] = 99; k[0x9d] = 50; k[0x9e] = 99; k[0x9f] = 0;   // envelope 2: level 1, rate 2, level 2, end level
+  k[0xa0] = 255;                                          // mute group off (0 is a real group)
   for (var z = 0; z < 4; z++) {
     var b = zoneBase(z);
     encodeName(k, b, z === 0 ? (sampleName || '') : '');
@@ -1367,7 +1516,8 @@ g.Akai = {
   clamp: clamp, noteName: noteName, cleanName: cleanName, decodeName: decodeName, encodeName: encodeName,
   blankLoops: blankLoops, loopStart: loopStart, setLoop: setLoop, newSample: newSample,
   parseSample: parseSample, writeSample: writeSample, parseWav: parseWav, encodeWav: encodeWav, resample: resample,
-  PROG_FIELDS: PROG_FIELDS, KG_FIELDS: KG_FIELDS, ZONE_FIELDS: ZONE_FIELDS, fget: fget, fset: fset,
+  PROG_FIELDS: PROG_FIELDS, KG_FIELDS: KG_FIELDS, ZONE_FIELDS: ZONE_FIELDS, ZONE_EXTRA: ZONE_EXTRA, TEMPER_OFF: TEMPER_OFF,
+  MOD_SOURCES: MOD_SOURCES, tuneRaw: tuneRaw, tuneCents: tuneCents, fget: fget, fset: fset,
   zoneBase: zoneBase, zoneName: zoneName, setZoneName: setZoneName, progName: progName, setProgName: setProgName,
   newKeygroup: newKeygroup, newProgram: newProgram, parseProgram: parseProgram, writeProgram: writeProgram,
   autoRanges: autoRanges, buildProgram: buildProgram, validateProgram: validateProgram, zip: zip, crc32: crc32,
@@ -1479,7 +1629,7 @@ function removeAllSamples(){
   if(st.prog)renderProg();
   say('Removed all '+n+' sample'+(n===1?'':'s')+'.');
 }
-function selectSample(i){st.cur=i;st.sel=null;st.slice=null;st.undo=[];stopPlay();fitAll();renderSamples();}
+function selectSample(i){st.cur=i;st.sel=null;st.caret=null;st.slice=null;st.undo=[];stopPlay();fitAll();renderSamples();renderProcPanel();}
 function renderBatchBox(){
   const box=$('#batchBox'); if(!box)return; box.replaceChildren();
   const live=st.batches.filter(b=>samplesIn(b.id).length);
@@ -1582,6 +1732,7 @@ function drawWave(){
   }
   // selection
   if(st.sel){x.fillStyle='rgba(255,255,255,.18)';x.fillRect(X(st.sel.a),0,Math.max(1,(st.sel.b-st.sel.a)/spp),h);}
+  else if(st.caret!=null){x.fillStyle='rgba(255,255,255,.75)';x.fillRect(Math.round(X(st.caret)),0,1,h);}   // where Paste inserts
   // markers
   markers(s).forEach(m=>{
     const px=Math.round(X(m.pos))+.5; if(px<-10||px>w+10)return;
@@ -1649,11 +1800,13 @@ wave.addEventListener('pointermove',e=>{
 });
 wave.addEventListener('pointerup',()=>{
   const d=st.drag; st.drag=null; if(!d)return;
-  if(d.type==='sel'&&(!d.moved||(st.sel&&st.sel.b-st.sel.a<1)))st.sel=null;
+  if(d.type==='sel'&&(!d.moved||(st.sel&&st.sel.b-st.sel.a<1))){st.sel=null;if(!d.moved)st.caret=d.anchor;}
+  if(d.type==='sel'&&d.moved)st.caret=null;
   if(d.type==='marker'){loopAuditStop();renderSampleInspector();renderSamples();}
   if(d.type==='slice'){sortCuts();refreshSliceList();}
   if(d.type==='sel'&&d.moved&&st.slice&&!st.slice.edited)previewSlices();
   drawWave();updateReadout();renderToolbar();
+  if(d.type==='sel'&&(st.proc==='stretch'||st.proc==='spectrum'))renderProcPanel();   // they follow the selection
 });
 wave.addEventListener('dblclick',e=>{
   if(!cur()||sliceHandleAt(e.offsetX,e.offsetY)||markerAt(e.offsetX))return;
@@ -1669,7 +1822,7 @@ wave.addEventListener('wheel',e=>{
 function snap(){const s=cur();return{data:s.data,playStart:s.playStart,playEnd:s.playEnd,pitch:s.pitch,rate:s.rate,playType:s.playType,loops:s.loops.map(l=>({...l}))};}
 function pushUndo(){st.undo.push(snap());if(st.undo.length>40)st.undo.shift();}
 function undo(){const s=cur(),u=st.undo.pop();if(!s||!u){say('Nothing to undo.');return;}Object.assign(s,u);st.sel=null;clampView();afterEdit();say('Undone.');}
-function afterEdit(){const s=cur();if(!s)return;st.slice=null;s.dirty=true;clampView();syncScroll();renderSamples();}
+function afterEdit(){const s=cur();if(!s)return;st.slice=null;s.dirty=true;clampView();syncScroll();renderSamples();if(st.proc==='stretch'||st.proc==='spectrum')renderProcPanel();}
 function range(){const s=cur();return st.sel&&st.sel.b>st.sel.a?{a:st.sel.a,b:st.sel.b+1>s.data.length?s.data.length:st.sel.b+1}:{a:0,b:s.data.length};}
 function edit(label,fn){const s=cur();if(!s)return;pushUndo();const d=s.data.slice();fn(d,range());s.data=d;afterEdit();say(label+'.');}
 function structural(label,newData,f){
@@ -1691,6 +1844,129 @@ const ops={
   convert(){const s=cur(),to=+$('#rateSel').value;if(to===s.rate){say('Already at '+to+' Hz.');return;}const f=to/s.rate;
     const nd=Ak.resample(s.data,s.rate,to);const from=s.rate;structural('Converted '+from+' to '+to+' Hz',nd,p=>Math.round(p*f));s.rate=to;s.bandwidth=to>=40000?1:0;afterEdit();}
 };
+/* ---------- samples: process tools (copy/paste, invert, filter, EQ, time stretch, spectrum) ---------- */
+ops.copy=()=>{const s=cur();if(!s)return;const {a,b}=range();st.clip=s.data.slice(a,b);say('Copied '+(b-a)+' samples ('+((b-a)/s.rate).toFixed(3)+' s).');renderToolbar();};
+ops.paste=()=>{
+  const s=cur(),c=st.clip;if(!s||!c)return say('Copy something first.',true);
+  const d=s.data;
+  if(st.sel){const {a,b}=range(),nd=new Int16Array(d.length-(b-a)+c.length);nd.set(d.subarray(0,a));nd.set(c,a);nd.set(d.subarray(b),a+c.length);
+    const delta=c.length-(b-a);structural('Replaced the selection with '+c.length+' samples',nd,p=>p<a?p:p>=b?p+delta:a);return;}
+  const at=st.caret!=null?Ak.clamp(st.caret,0,d.length):d.length,nd=new Int16Array(d.length+c.length);
+  nd.set(d.subarray(0,at));nd.set(c,at);nd.set(d.subarray(at),at+c.length);
+  structural('Pasted '+c.length+' samples',nd,p=>p<at?p:p+c.length);
+};
+ops.invert=()=>edit('Inverted',(d,r)=>{for(let i=r.a;i<r.b;i++)d[i]=Ak.clamp(-d[i],-32768,32767);});
+// biquad filters (RBJ cookbook), run over a region in place on floats
+function biquad(type,f0,rate,q,gainDb){
+  const w=2*Math.PI*Math.min(f0,rate*0.49)/rate,c=Math.cos(w),sn=Math.sin(w),al=sn/(2*q),A=Math.pow(10,(gainDb||0)/40);let b0,b1,b2,a0,a1,a2;
+  if(type==='lp'){b0=(1-c)/2;b1=1-c;b2=(1-c)/2;a0=1+al;a1=-2*c;a2=1-al;}
+  else if(type==='hp'){b0=(1+c)/2;b1=-(1+c);b2=(1+c)/2;a0=1+al;a1=-2*c;a2=1-al;}
+  else{b0=1+al*A;b1=-2*c;b2=1-al*A;a0=1+al/A;a1=-2*c;a2=1-al/A;}   // peaking EQ
+  return {b0:b0/a0,b1:b1/a0,b2:b2/a0,a1:a1/a0,a2:a2/a0};
+}
+function runBiquad(x,k){let x1=0,x2=0,y1=0,y2=0;for(let i=0;i<x.length;i++){const v=x[i],y=k.b0*v+k.b1*x1+k.b2*x2-k.a1*y1-k.a2*y2;x2=x1;x1=v;y2=y1;y1=y;x[i]=y;}}
+function onePole(x,type,f0,rate){const a=Math.exp(-2*Math.PI*Math.min(f0,rate*0.49)/rate);let y=0;for(let i=0;i<x.length;i++){y=(1-a)*x[i]+a*y;x[i]=type==='lp'?y:x[i]-y;}}
+function processRegion(label,fn){
+  edit(label,(d,r)=>{const x=new Float32Array(r.b-r.a);for(let i=0;i<x.length;i++)x[i]=d[r.a+i];fn(x,cur().rate);
+    let clip=0;for(let i=0;i<x.length;i++){const v=Math.round(x[i]);if(v>32767||v<-32768)clip++;d[r.a+i]=Ak.clamp(v,-32768,32767);}
+    if(clip)setTimeout(()=>say(label+'. '+clip+' samples went past full scale and were clipped: lower the level and try again.',true),0);});
+}
+const proc={filter:{type:'lp',freq:2000,slope:12},eq:{gains:[0,0,0,0,0,0,0]},stretch:{pct:100}};
+const EQ_BANDS=[63,160,400,1000,2500,6300,16000];
+function applyFilter(){const f=proc.filter;processRegion((f.type==='lp'?'Low-pass ':'High-pass ')+f.freq+' Hz, '+f.slope+' dB/oct',(x,rate)=>{
+  if(f.slope===6)onePole(x,f.type,f.freq,rate);
+  else{const k=biquad(f.type,f.freq,rate,Math.SQRT1_2);runBiquad(x,k);if(f.slope===24)runBiquad(x,k);}});}
+function applyEq(){const g=proc.eq.gains;if(g.every(v=>!v))return say('All bands are at 0 dB, so there is nothing to change.');
+  processRegion('EQ',(x,rate)=>{EQ_BANDS.forEach((f,i)=>{if(g[i]&&f<rate*0.45)runBiquad(x,biquad('peak',f,rate,1.4,g[i]));});});}
+/* Time stretch by WSOLA: overlap-add short windows, each placed where it lines up best with the last, so the pitch stays. */
+function wsola(x,ratio,rate){
+  const N=Math.round(rate*0.046)&~1,H=N>>1,tol=Math.round(rate*0.012),outLen=Math.round(x.length*ratio),y=new Float32Array(outLen+N),w=new Float32Array(N);
+  for(let i=0;i<N;i++)w[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+  const norm=new Float32Array(outLen+N);let prev=0;
+  for(let o=0;o<outLen;o+=H){
+    const centre=Math.round(o/ratio);let best=centre;
+    if(o>0){let bc=-Infinity;const ref=prev+H,L=Math.min(N>>1,512);
+      for(let d=-tol;d<=tol;d+=2){const c0=centre+d;if(c0<0||c0+L>=x.length)continue;let c=0;for(let i=0;i<L;i+=2)c+=x[c0+i]*(x[ref+i]||0);if(c>bc){bc=c;best=c0;}}}
+    best=Ak.clamp(best,0,Math.max(0,x.length-1));
+    for(let i=0;i<N;i++){const v=x[best+i];if(v===undefined)break;y[o+i]+=v*w[i];norm[o+i]+=w[i];}
+    prev=best;
+  }
+  const out=new Float32Array(outLen);for(let i=0;i<outLen;i++)out[i]=norm[i]>1e-3?y[i]/norm[i]:0;
+  return out;
+}
+function applyStretch(){
+  const s=cur();if(!s)return;const r=proc.stretch.pct/100;if(r===1)return say('100% leaves the length as it is.');
+  const {a,b}=range(),x=new Float32Array(b-a);for(let i=0;i<x.length;i++)x[i]=s.data[a+i];
+  const y=wsola(x,r,s.rate),nd=new Int16Array(s.data.length-(b-a)+y.length);
+  nd.set(s.data.subarray(0,a));for(let i=0;i<y.length;i++)nd[a+i]=Ak.clamp(Math.round(y[i]),-32768,32767);nd.set(s.data.subarray(b),a+y.length);
+  const delta=y.length-(b-a);
+  structural('Stretched '+(st.sel?'the selection':'the sample')+' to '+proc.stretch.pct+'% ('+((b-a)/s.rate).toFixed(2)+' s to '+(y.length/s.rate).toFixed(2)+' s)',nd,p=>p<a?p:p>=b?p+delta:a+Math.round((p-a)*r));
+}
+/* Spectrum: averaged Hann-windowed FFTs of the selection (or whole sample), drawn on a log frequency scale. */
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}
+  for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let j=0;j<len/2;j++){const a=i+j,b=a+len/2,tr=re[b]*cr-im[b]*ci,ti=re[b]*ci+im[b]*cr;re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t;}}}}
+function spectrum(s,a,b){
+  const N=4096,mag=new Float64Array(N/2);let frames=0;const w=new Float32Array(N);for(let i=0;i<N;i++)w[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+  const hop=N/2,maxFrames=200,step=Math.max(hop,Math.floor((b-a-N)/maxFrames));
+  for(let o=a;o+N<=b||(frames===0&&o<b);o+=step){const re=new Float64Array(N),im=new Float64Array(N);for(let i=0;i<N;i++)re[i]=(s.data[o+i]||0)/32768*w[i];fft(re,im);
+    for(let k=0;k<N/2;k++)mag[k]+=Math.hypot(re[k],im[k]);frames++;if(o+N>b)break;}
+  for(let k=0;k<N/2;k++)mag[k]=20*Math.log10(Math.max(1e-9,mag[k]/frames/(N/4)));
+  // strongest frequency, refined between bins by fitting a parabola through the peak and its neighbours
+  let pk=Math.max(1,Math.ceil(20/s.rate*N));for(let k=pk;k<N/2-1;k++)if(mag[k]>mag[pk])pk=k;
+  const y0=mag[pk-1],y1=mag[pk],y2=mag[pk+1],den=y0-2*y1+y2,dk=den?0.5*(y0-y2)/den:0;
+  return {mag,N,rate:s.rate,peak:{f:(pk+Ak.clamp(dk,-0.5,0.5))*s.rate/N,db:y1-0.25*(y0-y2)*dk}};
+}
+function drawSpectrum(c,sp){
+  const dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);const cs=getComputedStyle(document.documentElement),col=v=>cs.getPropertyValue(v).trim();
+  const L=40,B=18,T=6,R=8,pw=w-L-R,ph=h-T-B,fMin=20,fMax=sp.rate/2,X=f=>L+Math.log(f/fMin)/Math.log(fMax/fMin)*pw,dbMin=-100,Y=db=>T+(1-(db-dbMin)/(0-dbMin))*ph;
+  g.fillStyle=col('--lcd');g.fillRect(0,0,w,h);g.font='10px '+col('--font-m');g.textBaseline='middle';
+  g.strokeStyle=col('--grid');g.fillStyle=col('--dim');g.lineWidth=1;
+  for(const db of [0,-20,-40,-60,-80,-100]){const y=Math.round(Y(db))+.5;g.beginPath();g.moveTo(L,y);g.lineTo(L+pw,y);g.stroke();g.textAlign='right';g.fillText(db+' dB',L-4,y);}
+  g.textAlign='center';g.textBaseline='top';
+  for(const f of [50,100,200,500,1000,2000,5000,10000,20000]){if(f>fMax)continue;const x=Math.round(X(f))+.5;g.beginPath();g.moveTo(x,T);g.lineTo(x,T+ph);g.stroke();g.fillText(f>=1000?f/1000+'k':String(f),x,T+ph+4);}
+  const grad=g.createLinearGradient(0,T,0,T+ph);grad.addColorStop(0,col('--wave'));grad.addColorStop(1,'transparent');
+  g.beginPath();g.moveTo(L,T+ph);
+  for(let px=0;px<=pw;px++){const f=fMin*Math.pow(fMax/fMin,px/pw),f2=fMin*Math.pow(fMax/fMin,(px+1)/pw);let k0=Math.floor(f/sp.rate*sp.N),k1=Math.max(k0+1,Math.ceil(f2/sp.rate*sp.N));let m=-Infinity;
+    for(let k=k0;k<k1&&k<sp.mag.length;k++)if(sp.mag[k]>m)m=sp.mag[k];
+    g.lineTo(L+px,Y(Ak.clamp(m,dbMin,0)));}
+  g.lineTo(L+pw,T+ph);g.closePath();g.globalAlpha=.35;g.fillStyle=grad;g.fill();g.globalAlpha=1;g.strokeStyle=col('--wave');g.lineWidth=1.25;g.stroke();
+  if(sp.peak.f>=fMin){const px=X(sp.peak.f),py=Y(Ak.clamp(sp.peak.db,dbMin,0));g.fillStyle=col('--accent');g.beginPath();g.arc(px,py,3.5,0,2*Math.PI);g.fill();}
+  return sp.peak;
+}
+function renderProcPanel(){
+  const box=$('#procPanel'),s=cur();if(!box)return;box.replaceChildren();box.hidden=!st.proc||!s;if(box.hidden)return;
+  const where=st.sel?'the selection':'the whole sample',close=el('button',{onclick:()=>{st.proc=null;renderProcPanel();renderToolbar();}},'Close');
+  const head=(t,extra)=>el('div',{class:'prochead'},el('b',{},t),el('span',{class:'hint'},'Works on '+where+'.'),...(extra||[]),el('span',{style:'flex:1'}),close);
+  if(st.proc==='filter'){
+    const f=proc.filter,ty=el('select',{'aria-label':'Filter type'},el('option',{value:'lp'},'Low-pass (cut highs)'),el('option',{value:'hp'},'High-pass (cut lows)'));ty.value=f.type;ty.onchange=()=>{f.type=ty.value;};
+    const fr=el('input',{type:'number',min:20,max:20000,step:10,value:String(f.freq),'aria-label':'Cutoff frequency in Hz'});fr.onchange=()=>{f.freq=Ak.clamp(Math.round(+fr.value||1000),20,20000);fr.value=f.freq;};
+    const sl=el('select',{'aria-label':'Slope'},...[6,12,24].map(v=>el('option',{value:String(v)},v+' dB/oct')));sl.value=String(f.slope);sl.onchange=()=>{f.slope=+sl.value;};
+    box.append(head('Filter'),el('div',{class:'procrow'},ty,el('label',{class:'inl'},'Cutoff ',fr,' Hz'),sl,el('button',{class:'primary',onclick:applyFilter},'Apply')));
+  }else if(st.proc==='eq'){
+    const g=proc.eq.gains,sliders=EQ_BANDS.map((f,i)=>{const v=el('output',{},(g[i]>0?'+':'')+g[i]);
+      const r=el('input',{type:'range',min:-12,max:12,step:0.5,value:String(g[i]),'aria-label':'EQ '+f+' Hz gain in dB',disabled:f>=s.rate*0.45});
+      r.oninput=()=>{g[i]=+r.value;v.textContent=(g[i]>0?'+':'')+g[i];};
+      return el('label',{class:'eqband'},v,r,el('span',{},f>=1000?f/1000+'k':String(f)));});
+    box.append(head('Graphic EQ',[el('button',{onclick:()=>{proc.eq.gains=[0,0,0,0,0,0,0];renderProcPanel();}},'Flat')]),el('div',{class:'eqbands'},...sliders),
+      el('div',{class:'procrow'},el('span',{class:'hint'},'dB per band, from 63 Hz to 16 kHz.'+(s.rate<40000?' Bands above the sample\'s range are switched off.':'')),el('span',{style:'flex:1'}),el('button',{class:'primary',onclick:applyEq},'Apply')));
+  }else if(st.proc==='stretch'){
+    const {a,b}=range(),len=(b-a)/s.rate,pc=el('input',{type:'number',min:25,max:400,step:1,value:String(proc.stretch.pct),'aria-label':'New length in percent'});
+    const sec=el('input',{type:'number',min:0.01,step:0.01,value:(len*proc.stretch.pct/100).toFixed(2),'aria-label':'New length in seconds'});
+    const sync=from=>{if(from==='pc'){proc.stretch.pct=Ak.clamp(Math.round(+pc.value||100),25,400);pc.value=proc.stretch.pct;sec.value=(len*proc.stretch.pct/100).toFixed(2);}
+      else{proc.stretch.pct=Ak.clamp(Math.round((+sec.value||len)/len*100),25,400);pc.value=proc.stretch.pct;}};
+    pc.onchange=()=>sync('pc');sec.onchange=()=>sync('sec');
+    box.append(head('Time stretch'),el('div',{class:'procrow'},el('span',{class:'hint'},'Now '+len.toFixed(2)+' s.'),el('label',{class:'inl'},'New length ',pc,' %'),el('label',{class:'inl'},'or ',sec,' s'),
+      el('button',{class:'primary',onclick:applyStretch},'Stretch')),
+      el('p',{class:'hint'},'Keeps the pitch and changes the timing. Best on sustained and tonal sounds; drums and very fast attacks can smear a little at big changes. Undo puts it back.'));
+  }else if(st.proc==='spectrum'){
+    const c=el('canvas',{class:'speccanvas','aria-label':'Frequency spectrum'}),info=el('span',{class:'hint'});
+    box.append(head('Spectrum',[info]),c);
+    requestAnimationFrame(()=>{const {a,b}=range(),pk=drawSpectrum(c,spectrum(s,a,b));
+      if(pk.f>0){const n=Math.round(69+12*Math.log2(pk.f/440)),cents=Math.round(100*(12*Math.log2(pk.f/440)-(n-69)));
+        info.textContent='Strongest: '+(pk.f<1000?pk.f.toFixed(1)+' Hz':(pk.f/1000).toFixed(2)+' kHz')+' ('+noteName(Ak.clamp(n,0,127))+(cents?(cents>0?' +':' ')+cents+' cents':'')+'), '+pk.db.toFixed(1)+' dB';}});
+  }
+}
 /* Trim and cut at the loop points. Loop 1 start and end are the points used. */
 function loopPts(){
   const s=cur(); if(!s)return null; const l=s.loops[0];
@@ -1727,6 +2003,8 @@ addEventListener('keydown',e=>{
   if(document.body.dataset.tab!=='samples')return;
   if(e.code==='Space'){e.preventDefault();st.src?stopPlay():play(false);}
   else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&cur()){e.preventDefault();ops.copy();}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='v'&&st.clip){e.preventDefault();ops.paste();}
 });
 
 /* ---------- samples: auto slice ---------- */
@@ -1873,7 +2151,13 @@ function renderToolbar(){
     B('−',()=>zoom(1.5),{title:'Zoom out'}),B('+',()=>zoom(0.66),{title:'Zoom in'}),B('All',()=>{fitAll();drawWave();updateReadout();}),
     B('Selection',()=>{if(!st.sel)return;const w=$('#wave').clientWidth;st.view.spp=Math.max(0.02,(st.sel.b-st.sel.a)/w*1.1);st.view.start=st.sel.a-(st.sel.b-st.sel.a)*0.05;clampView();syncScroll();drawWave();updateReadout();},{off:!hasSel}),
     el('span',{class:'sep'}),el('select',{id:'rateSel','aria-label':'Target sample rate',value:String(s.rate===22050?22050:44100)},el('option',{value:'44100'},'44.1 kHz'),el('option',{value:'22050'},'22.05 kHz')),
-    B('Convert rate',ops.convert));
+    B('Convert rate',ops.convert),
+    el('div',{class:'tbreak'}),
+    B('Copy',ops.copy,{title:'Copy the selection (or the whole sample). Ctrl+C'}),
+    B('Paste',ops.paste,{off:!st.clip,title:st.sel?'Replace the selection with what was copied. Ctrl+V':'Insert what was copied at the point you clicked (or at the end). Ctrl+V'}),
+    B('Invert',ops.invert,{title:'Flip the waveform upside down (polarity)'}),el('span',{class:'sep'}),
+    ...[['filter','Filter…','High-pass or low-pass filter'],['eq','EQ…','7-band graphic EQ'],['stretch','Time stretch…','Change the length without changing the pitch'],['spectrum','Spectrum','Frequency analysis (FFT)']]
+      .map(([k,l,tt])=>B(l,()=>{st.proc=st.proc===k?null:k;renderProcPanel();renderToolbar();},{cls:st.proc===k?'on':'',title:tt})));
   $('#rateSel').value=String(s.rate===22050?22050:44100);
 }
 function row(label,input,note){return el('label',{class:'row'},el('span',{},label),input,note?el('span',{class:'nn'},note):el('span'));}
@@ -1923,7 +2207,7 @@ function renderSampleInspector(){
   xfCurve.value=xf.curve;xfCurve.addEventListener('change',()=>{xf.curve=xfCurve.value;});
   box.append(
     el('h3',{},'Sample'),row('Name',nameIn),row('Root note',pitch),
-    row('Fine tune',num(s.tuneCents,-50,50,v=>{s.tuneCents=v;s.tuneFrac=0;}),'cents'),row('Playback',pt),row('Bandwidth',bw),
+    row('Tune',num(s.tuneCents,-5000,5000,v=>{s.tuneCents=v;s.tuneFrac=0;}),'cents'),row('Playback',pt),row('Bandwidth',bw),
     el('h3',{},'Play range'),
     row('Start',num(s.playStart,0,n-1,v=>{s.playStart=Math.min(v,s.playEnd);})),row('End',num(s.playEnd,0,n-1,v=>{s.playEnd=Math.max(v,s.playStart);})),
     el('div',{class:'btns'},el('button',{onclick:()=>{if(!st.sel)return say('Select a region first.',true);pushUndo();s.playStart=st.sel.a;s.playEnd=Math.min(n-1,st.sel.b);afterEdit();}},'Range = selection')),
@@ -2049,8 +2333,45 @@ function lanes(p){
   return {map:out,count:Math.max(1,ends.length)};
 }
 const LANE_H=22,TOP=18,PIANO=34;
+/* ---------- Quick Access: every program in one table, for setting up a mix (as MESA's Quick Access window) ---------- */
+const QA_COLS=['midiProg','midiChan','poly','priority','rangeLow','rangeHigh','transpose','tune','output','outLevel','fxBus','level','pan','loud'];
+function qaCell(p,f){
+  const cur=Ak.fget(p.raw,f,0);
+  let inp;
+  if(f.vals){
+    const opts=Object.keys(f.vals).map(Number).sort((a,b)=>(a===255)-(b===255)||a-b); if(!opts.includes(cur))opts.push(cur);
+    inp=el('select',{'aria-label':Ak.progName(p)+' '+f.label},...opts.map(v=>el('option',{value:String(v)},f.vals[v]!=null?f.vals[v]:String(v))));
+    inp.value=String(cur);
+    inp.addEventListener('change',()=>{Ak.fset(p.raw,f,+inp.value,0);qaChanged(p);});
+  }else{
+    inp=el('input',{type:'number',min:f.min+(f.disp||0),max:f.max+(f.disp||0),step:1,value:String(cur),'aria-label':Ak.progName(p)+' '+f.label});
+    const nn=f.note?el('span',{class:'nn'},noteName(cur)):null;
+    inp.addEventListener('change',()=>{inp.value=Ak.fset(p.raw,f,inp.value,0);if(nn)nn.textContent=noteName(+inp.value);qaChanged(p);});
+    if(nn)return el('td',{},inp,' ',nn);
+  }
+  return el('td',{},inp);
+}
+function qaChanged(p){p.dirty=true;if(typeof sessSave==='function')sessSave();}
+function renderQuickAccess(s){
+  const F=Object.fromEntries(Ak.PROG_FIELDS.map(f=>[f.k,f])),cols=QA_COLS.map(k=>F[k]);
+  const short={midiProg:'Prog',midiChan:'Chan',poly:'Voices',priority:'Priority',rangeLow:'Low',rangeHigh:'High',transpose:'Transp.',tune:'Tune ¢',output:'Output',outLevel:'Out lvl',fxBus:'FX',level:'Level',pan:'Pan',loud:'Loud'};
+  const chans=new Map();st.progs.forEach(p=>{const c=p.raw[0x10];chans.set(c,(chans.get(c)||0)+1);});
+  const rows=st.progs.map(p=>{
+    const open=el('button',{class:'linkish',title:'Open this program',onclick:()=>{st.qa=false;setProgram(p);}},Ak.progName(p));
+    const c=p.raw[0x10],shared=c!==255&&chans.get(c)>1;
+    return el('tr',{class:p===st.prog?'cur':null},el('th',{scope:'row'},open,shared?el('span',{class:'qa-flag',title:'Another program uses the same MIDI channel, so both play together'},' · same channel'):''),
+      el('td',{class:'num'},String(p.kgs.length)),...cols.map(f=>qaCell(p,f)));
+  });
+  s.append(el('div',{class:'toolbar'},el('b',{},'Quick Access'),el('span',{class:'hint'},st.progs.length+' program'+(st.progs.length===1?'':'s')+'. Changes apply straight away.'),
+      el('span',{style:'flex:1'}),el('button',{class:'primary',disabled:!st.prog,onclick:()=>{st.qa=false;renderProg();}},st.prog?'Back to '+Ak.progName(st.prog):'Back')),
+    st.progs.length?el('div',{class:'qa-wrap'},el('table',{class:'qa'},
+      el('thead',{},el('tr',{},el('th',{scope:'col'},'Program'),el('th',{scope:'col',title:'Keygroups'},'KGs'),...cols.map(f=>el('th',{scope:'col',title:f.label},short[f.k])))),
+      el('tbody',{},...rows))):el('p',{class:'hint'},'No programs loaded yet.'),
+    el('p',{class:'hint'},'Prog is the MIDI program number, and Voices is polyphony, both as the sampler shows them. Programs on the same MIDI channel play together, which is how layers and splits across programs are made. Tune is in cents (100 = 1 semitone).'));
+}
 function renderProgStage(){
   const s=$('#pStage'); s.replaceChildren(); const p=st.prog;
+  if(st.qa){renderQuickAccess(s);return;}
   if(!p){s.append(el('div',{class:'empty'},el('h2',{},'No program open'),el('p',{},'Open an .a3p from your sampler, start an empty program, or build one from the samples you have loaded.')));return;}
   const nameIn=el('input',{type:'text',maxlength:12,value:Ak.progName(p),'aria-label':'Program name'});
   nameIn.addEventListener('input',()=>{const q=nameIn.selectionStart;nameIn.value=Ak.cleanName(nameIn.value,true);nameIn.setSelectionRange(q,q);});
@@ -2059,7 +2380,8 @@ function renderProgStage(){
   const pp=el('select',{'aria-label':'Disk partition for this program',title:'Which partition of the exported disk image this program goes to. The samples it uses are copied into the same partition.'},el('option',{value:'auto'},'Automatic'),...Array.from({length:Ak.MAX_PARTS},(_,i)=>el('option',{value:String(i)},'Partition '+String.fromCharCode(65+i))));
   pp.value=p.part==null?'auto':String(p.part);
   pp.addEventListener('change',()=>{p.part=pp.value==='auto'?null:+pp.value;dsk.out=null;dsk.msg='';renderProgList();say(p.part==null?Ak.progName(p)+': partition chosen automatically on export.':Ak.progName(p)+' will go to partition '+String.fromCharCode(65+p.part)+' on the disk image, together with the samples it uses.');});
-  s.append(el('div',{class:'toolbar'},el('span',{class:'hint'},'Program name'),nameIn,el('span',{class:'hint'},p.kgs.length+' keygroups'),el('span',{class:'hint'},'Disk partition'),pp),
+  s.append(el('div',{class:'toolbar'},el('span',{class:'hint'},'Program name'),nameIn,el('span',{class:'hint'},p.kgs.length+' keygroups'),el('span',{class:'hint'},'Disk partition'),pp,
+      el('span',{style:'flex:1'}),el('button',{title:'Every program in one table: MIDI channels, levels, outputs, tuning',onclick:()=>{st.qa=true;renderProgStage();}},'Quick Access')),
     el('div',{class:'wavewrap',style:`height:${TOP+L.count*LANE_H+PIANO+6}px;background:var(--panel2)`},el('canvas',{id:'map','aria-label':'Keyboard map'})),
     el('p',{class:'hint'},'Click a bar to select its keygroup. Bars stacked on top of each other are layers that overlap on the keyboard. Click the piano keys under the map to hear them.'),kbPanel(),liveSection());
   liveWire();
@@ -2102,19 +2424,60 @@ function drawMap(){
   // ruler labels
   x.fillStyle=col('--dim');x.textBaseline='top';for(let n=24;n<=127;n+=12){x.fillText(noteName(n),X(n)+2,3);}
 }
-function fieldInput(buf,f,base,after){
-  const i=el('input',{type:'number',min:f.min,max:f.max,step:1,value:String(Ak.fget(buf,f,base))});
-  const nn=el('span',{class:'nn'},f.note?noteName(Ak.fget(buf,f,base)):'');
-  i.addEventListener('change',()=>{const v=Ak.fset(buf,f,i.value,base);i.value=v;if(f.note)nn.textContent=noteName(v);if(after)after();});
+function fieldInput(buf,f,base,after,z){
+  const cur=Ak.fget(buf,f,base,z);
+  if(f.vals){
+    // a menu; a value outside the documented list (written by another model) is kept and shown as its number
+    const opts=Object.keys(f.vals).map(Number).sort((a,b)=>(a===255)-(b===255)||a-b);
+    if(!opts.includes(cur))opts.push(cur);
+    const sel=el('select',{},...opts.map(v=>el('option',{value:String(v)},f.vals[v]!=null?f.vals[v]:'Value '+v)));
+    sel.value=String(cur);
+    sel.addEventListener('change',()=>{Ak.fset(buf,f,+sel.value,base,z);if(after)after();});
+    return el('label',{class:'row'},el('span',{},f.label),sel,el('span',{class:'nn'}));
+  }
+  const lo=f.min+(f.disp||0),hi=f.max+(f.disp||0);
+  const i=el('input',{type:'number',min:lo,max:hi,step:1,value:String(cur)});
+  const nn=el('span',{class:'nn'},f.note?noteName(cur):'');
+  i.addEventListener('change',()=>{const v=Ak.fset(buf,f,i.value,base,z);i.value=v;if(f.note)nn.textContent=noteName(v);if(after)after();});
   return el('label',{class:'row'},el('span',{},f.label),i,nn);
+}
+/* Collapsible groups, remembered while the page is open, so the long S3000XL parameter list stays manageable. */
+const openGroups=new Set(['Program/MIDI and voices','Keygroup/Range and tune','Keygroup/Filter','Keygroup/Amp envelope']);
+function group(scope,title,rows,hint){
+  const id=scope+'/'+title,d=el('details',{class:'pgroup',open:openGroups.has(id)},el('summary',{},title),...(hint?[el('p',{class:'hint'},hint)]:[]),...rows);
+  d.addEventListener('toggle',()=>{d.open?openGroups.add(id):openGroups.delete(id);});
+  return d;
+}
+function grouped(fields,buf,scope,after,hints){
+  const out=[],by=new Map();
+  fields.forEach(f=>{if(!by.has(f.g))by.set(f.g,[]);by.get(f.g).push(f);});
+  by.forEach((fs,g)=>out.push(group(scope,g,fs.map(f=>fieldInput(buf,f,0,after)),hints&&hints[g])));
+  return out;
+}
+const NOTE_LETTERS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function temperamentEditor(p){
+  const o=Ak.TEMPER_OFF,cells=NOTE_LETTERS.map((n,i)=>{
+    const inp=el('input',{type:'number',min:-50,max:50,step:1,value:String(i8(p.raw[o+i])),'aria-label':'Temperament '+n+' in cents'});
+    inp.addEventListener('change',()=>{const v=Ak.clamp(Math.round(+inp.value||0),-50,50);inp.value=v;p.raw[o+i]=v&255;});
+    return el('label',{class:'tcell'},el('span',{},n),inp);
+  });
+  const reset=el('button',{onclick:()=>{for(let i=0;i<12;i++)p.raw[o+i]=0;renderProgInspector();}},'Equal temperament');
+  return group('Program','Temperament',[el('div',{class:'tgrid'},...cells),el('div',{class:'btns'},reset)],'Cents up or down for each note of the octave, from C. All zero is normal equal temperament.');
 }
 function renderProgInspector(){
   const box=$('#pInspector'); box.replaceChildren(); const p=st.prog; if(!p)return;
-  box.append(el('h3',{},'Program'),...Ak.PROG_FIELDS.map(f=>fieldInput(p.raw,f,0)));
+  box.append(el('h3',{},'Program'),...grouped(Ak.PROG_FIELDS,p.raw,'Program',null,{
+    'LFO 1':'Its effect on pitch is set per keygroup (LFO 1 to pitch, under Range and tune). It can also be picked as a modulation source.',
+    'LFO 2':'LFO 2 does nothing on its own: pick LFO 2 as a source under Modulation (pan, loudness, filter or pitch).',
+    'Portamento':'The S3000XL has rate and time modes. Check on the sampler which of mode 0 and 1 is which.',
+    'Modulation':'Each source is a controller such as the mod wheel or an LFO. Pan and loudness amounts 1 and 2 are set here; the filter, pitch and loudness 3 amounts are set per keygroup.',
+    'Output':'Effects bus and send only do something with the EB16 effects board fitted.'}),
+    temperamentEditor(p));
   const k=kgCur(); if(!k){box.append(el('p',{class:'hint'},'No keygroup selected.'));return;}
-  box.append(el('h3',{},'Keygroup '+(st.kg+1)));
-  let grp='';
-  Ak.KG_FIELDS.forEach(f=>{if(f.g!==grp){grp=f.g;box.append(el('h3',{},grp));}box.append(fieldInput(k,f,0,()=>{renderKgList();drawMap();}));});
+  box.append(el('h3',{},'Keygroup '+(st.kg+1)),...grouped(Ak.KG_FIELDS,k,'Keygroup',()=>{renderKgList();drawMap();},{
+    'Range and tune':'Keygroups in the same mute group cut each other off, for example a closed hi-hat stopping an open one. Off lets them overlap.',
+    'Envelope 2':'Envelope 2 shapes the filter (Envelope 2 to cutoff) and can be a modulation source. It has four rates and four levels.',
+    'Effects (EB16)':'Only with the EB16 effects board fitted.'}));
   box.append(el('h3',{},'Velocity zones'));
   const z=st.zone,names=new Set(st.samples.map(s=>s.name));
   box.append(el('div',{class:'zones'},...[0,1,2,3].map(i=>el('button',{'aria-pressed':i===z,title:Ak.zoneName(k,i)||'empty',onclick:()=>{st.zone=i;renderProgInspector();}},'Zone '+(i+1)+(Ak.zoneName(k,i)?'':' ·')))));
@@ -2127,6 +2490,7 @@ function renderProgInspector(){
   const sc=st.samples[st.cur];
   box.append(el('div',{class:'btns'},el('button',{disabled:!sc,onclick:()=>{Ak.setZoneName(k,z,sc.name);renderProg();}},sc?'Use '+sc.name:'Use selected sample')));
   Ak.ZONE_FIELDS.forEach(f=>box.append(fieldInput(k,f,Ak.zoneBase(z))));
+  Ak.ZONE_EXTRA.forEach(f=>box.append(fieldInput(k,f,0,null,z)));
 }
 
 /* ---------- disk images: browse an Akai CD or disk image ---------- */
@@ -2469,7 +2833,7 @@ function kbMsg(e){
 /* Every keygroup under the note, every velocity zone under the velocity, with the pitch shift the sampler would apply. */
 function kbResolve(note,vel){
   const p=st.prog,hits=[],missing=new Set(); if(!p)return {hits,missing};
-  const oct=i8(p.raw[0x15]);
+  const tr=i8(p.raw[0x4b]),ptune=Ak.fget(p.raw,{t:'tune',off:0x41})/100;
   p.kgs.forEach((k,ki)=>{
     if(note<Math.min(k[3],k[4])||note>Math.max(k[3],k[4]))return;
     for(let z=0;z<4;z++){
@@ -2477,7 +2841,8 @@ function kbResolve(note,vel){
       const b=Ak.zoneBase(z); if(vel<k[b+12]||vel>k[b+13])continue;
       const s=st.samples.find(x=>x.name===name);
       if(!s){missing.add(name);continue;}
-      const semis=note-s.pitch+oct*12+i8(k[6])+i8(k[5])/100+i8(k[b+15])+i8(k[b+14])/100+s.tuneCents/100;
+      const kt=Ak.fget(k,{t:'tune',off:5})/100,zt=Ak.fget(k,{t:'tune',off:b+14})/100,cp=k[0x84+z]===1;
+      const semis=(cp?0:note-s.pitch+tr)+ptune+kt+zt+s.tuneCents/100;
       hits.push({ki,z,s,semis,rate:Math.pow(2,semis/12)});
     }
   });
@@ -2497,13 +2862,17 @@ function kbNoteOn(note,vel){
   kbNoteOff(note,true);
   const ctx=actx(),{hits,missing}=kbResolve(note,vel),voices=[];
   kb.down.add(note);
+  // mute groups: a keygroup cuts off notes still sounding from other keygroups in the same group
+  const p=st.prog,groups=new Set(hits.map(h=>p.kgs[h.ki][0xa0]).filter(g=>g!==255));
+  if(groups.size)kb.voices.forEach((vs,n)=>{const keep=vs.filter(v=>!(groups.has(v.mute)&&!hits.some(h=>h.ki===v.ki)));
+    vs.filter(v=>!keep.includes(v)).forEach(v=>kbKill(v,0.01));kb.voices.set(n,keep);});
   hits.forEach(h=>{
     const s=h.s,l=s.loops[0],loop=l.time>0&&l.len>0&&s.playType<2,src=ctx.createBufferSource(),g=ctx.createGain();
     src.buffer=kbBuffer(ctx,s); src.playbackRate.value=Ak.clamp(h.rate,0.01,16);
     g.gain.value=Math.pow(vel/127,0.7)*0.8; src.connect(g); g.connect(ctx.destination);
     if(loop){src.loop=true;src.loopStart=Ak.loopStart(l)/s.rate;src.loopEnd=l.at/s.rate;src.start(0,s.playStart/s.rate);}
     else src.start(0,s.playStart/s.rate,Math.max(0.001,(s.playEnd+1-s.playStart)/s.rate));
-    voices.push({src,g,loop});
+    voices.push({src,g,loop,ki:h.ki,mute:p.kgs[h.ki][0xa0]});
   });
   kb.voices.set(note,voices);
   if(st.live&&hits.length){st.live.hot=new Set(hits.map(h=>h.s.uid));liveDraw();}
