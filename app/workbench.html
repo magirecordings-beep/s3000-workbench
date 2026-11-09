@@ -139,6 +139,123 @@ code{font:12.5px var(--font-m);background:var(--panel2);padding:1px 4px;border-r
 .atrack{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:2px;overflow:hidden}
 .afill2{height:100%;background:var(--ok)}.afill2.over{background:var(--accent)}
 /* grouped parameter sections in the Programs inspector */
+/* ---------- Programs: plugin panel (a deliberate single look: the S3000's grey chassis, red keys and backlit LCD) ---------- */
+#plugView{display:none}
+body[data-tab=programs] #tab-programs.plug-on{display:block;position:relative;min-height:0;overflow:hidden;background:#3a3b3d}
+#tab-programs.plug-on>.rail,#tab-programs.plug-on>.stage,#tab-programs.plug-on>.inspector{display:none}
+#tab-programs.plug-on #plugView{display:block;position:absolute;inset:0;overflow:hidden}
+.plug{
+  --ch:#cbc8bf;--ch-hi:#e2dfd7;--ch-lo:#a8a499;--well:#bdb9af;--seam:#8f8b80;--silk:#26272a;--silk2:#57585b;
+  --red:#c4302b;--red-hi:#e0463f;--lcd-bg:#a3bb7a;--lcd-ink:#1b2712;--lcd-dim:#4d613a;--cap:#2b2c2f;--cap-hi:#4a4c50;--trk:#9a968b;
+  position:absolute;left:0;top:0;transform-origin:0 0;box-sizing:border-box;padding:18px 22px 20px;display:grid;
+  grid-template-rows:118px minmax(0,1fr) 222px;gap:14px;color:var(--silk);font:13px var(--font-b);
+  background:linear-gradient(180deg,var(--ch-hi),var(--ch) 18%,var(--ch) 82%,var(--ch-lo));border-radius:12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.18),0 8px 30px rgba(0,0,0,.45);user-select:none}
+.plug::before,.plug::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;top:8px;
+  background:radial-gradient(circle at 35% 35%,#eeeae2,#8f8b80 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.plug::before{left:8px}.plug::after{right:8px}
+.plug .klab{font:600 11px var(--font-d);letter-spacing:.12em;text-transform:uppercase;color:var(--silk2);white-space:nowrap}
+.plug button{font:inherit}
+/* header */
+.phead{display:grid;grid-template-columns:190px 640px minmax(0,1fr) 300px;gap:18px;align-items:stretch}
+.badge{display:flex;flex-direction:column;justify-content:center;gap:0;border-left:4px solid var(--red);padding-left:12px}
+.badge b{font:700 40px/0.95 var(--font-d);letter-spacing:.02em;color:var(--silk)}
+.badge span{font:600 16px var(--font-d);letter-spacing:.32em;color:var(--silk2)}
+.badge i{font:600 10px var(--font-d);letter-spacing:.2em;color:var(--red);font-style:normal;margin-top:6px}
+.lcd{background:var(--lcd-bg);color:var(--lcd-ink);border-radius:5px;padding:10px 16px;display:grid;grid-template-rows:auto auto 1fr;gap:4px;
+  font:15px var(--font-m);box-shadow:inset 0 2px 6px rgba(0,0,0,.35),0 0 0 3px #2a2b2d,0 0 0 4px var(--seam);
+  background-image:linear-gradient(rgba(255,255,255,.08),rgba(0,0,0,.06))}
+.lcd1{display:flex;align-items:center;gap:12px}.lcd1>span:first-child{font-size:12px;color:var(--lcd-dim);letter-spacing:.1em}
+.lcdr{margin-left:auto;font-size:12px;color:var(--lcd-dim)}
+.lcd2{font-size:14px;letter-spacing:.04em;white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.lcd3{font-size:13px;color:var(--lcd-dim);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:end;text-transform:uppercase}
+.lcdname{background:transparent;border:0;border-bottom:1px dashed rgba(27,39,18,.35);color:var(--lcd-ink);font:inherit;padding:0 2px;width:13ch;outline:none}
+.lcdname.big{font-size:22px;font-weight:600;letter-spacing:.06em}
+.lcdname:focus{border-bottom-color:var(--lcd-ink);background:rgba(255,255,255,.12)}
+.lcdsel{appearance:none;-webkit-appearance:none;background:var(--lcd-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%231b2712'/%3E%3C/svg%3E") no-repeat right 8px center;
+  color:var(--lcd-ink);font:13px var(--font-m);border:0;border-radius:3px;padding:5px 24px 5px 8px;box-shadow:inset 0 1px 3px rgba(0,0,0,.35),0 0 0 2px #2a2b2d;min-width:0;cursor:pointer}
+.lcdsel:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.lcdsel:disabled{opacity:.55;cursor:default}
+.selcluster{display:grid;align-content:center;gap:10px}
+.selrow{display:grid;grid-template-columns:78px 34px minmax(0,1fr) 34px;gap:6px;align-items:center}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;align-content:center}
+.actions .hwbtn:last-child{grid-column:1/-1}
+/* hardware buttons */
+.hwbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:6px 10px;border-radius:4px;border:1px solid #5d5a53;cursor:pointer;
+  background:linear-gradient(#f0ede6,#d3cfc6);color:var(--silk);font:600 12px var(--font-d)!important;letter-spacing:.1em;text-transform:uppercase;
+  box-shadow:0 2px 0 #7b776e,inset 0 1px 0 #fff}
+.hwbtn:hover:not(:disabled){background:linear-gradient(#f7f5ef,#dcd8cf)}
+.hwbtn:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 0 #7b776e,inset 0 1px 0 #fff}
+.hwbtn:disabled{opacity:.45;cursor:default}
+.hwbtn.red{background:linear-gradient(var(--red-hi),var(--red));color:#fff;border-color:#7d1b17;box-shadow:0 2px 0 #6e1713,inset 0 1px 0 rgba(255,255,255,.35)}
+.hwbtn:focus-visible,.pswitch:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.lamp{width:7px;height:7px;border-radius:50%;background:#6f2a26;box-shadow:inset 0 1px 1px rgba(0,0,0,.5);flex:none}
+.ptab[aria-selected=true] .lamp,.pswitch[aria-pressed=true] .lamp{background:#ff4a3d;box-shadow:0 0 6px #ff3b2f,inset 0 -1px 1px rgba(0,0,0,.3)}
+.hwbtn.ptab{padding:5px 8px;font-size:11px!important;letter-spacing:.06em;gap:5px}
+.hwbtn.ptab[aria-selected=true]{background:linear-gradient(#e2ded5,#c9c5bb);box-shadow:inset 0 2px 3px rgba(0,0,0,.25);transform:translateY(1px)}
+/* sections */
+.pmid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:14px;min-height:0}
+.psec,.pmap{background:var(--well);border-radius:7px;box-shadow:inset 0 2px 4px rgba(0,0,0,.18),0 1px 0 rgba(255,255,255,.6);padding:10px 14px 12px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.secbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.45)}
+.secbar h3{margin:0;font:700 15px var(--font-d);letter-spacing:.16em;text-transform:uppercase;color:var(--silk);white-space:nowrap}
+.secbar h3::before{content:'';display:inline-block;width:10px;height:10px;background:var(--red);margin-right:8px;vertical-align:-1px}
+.ptabs{display:flex;gap:4px;flex-wrap:nowrap;order:3;flex-basis:100%}
+.ptabs .ptab{flex:1}
+.kgact{margin-left:auto;display:flex;gap:5px;order:2}
+.page{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
+.prow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:flex-start}
+.page.dense .prow{gap:8px 6px}.page.dense .knob:not(.knob-lg){width:84px}
+.phint{margin:8px 0 0;font:12px var(--font-b);color:var(--silk2);max-width:72ch}
+.phint.inline{margin:0}
+.pempty{grid-row:2/4;display:grid;place-content:center;text-align:center;color:var(--silk2)}
+.pempty h2{font:700 26px var(--font-d);letter-spacing:.12em;text-transform:uppercase;color:var(--silk);margin:0 0 8px}
+/* knobs */
+.knob{display:grid;justify-items:center;gap:1px;outline:none;width:88px;touch-action:none}
+.knob-lg{width:104px}.knob-sm{width:66px}.knob-xs{width:auto;min-width:0}
+.knob-xs .kval{font-size:11px;min-width:0;padding:0 3px}.knob-xs .klab{font-size:10px;letter-spacing:.04em}
+.knob svg{cursor:ns-resize;display:block;overflow:visible}
+.k-track{fill:none;stroke:var(--trk);stroke-width:3.5;stroke-linecap:round}
+.k-val{fill:none;stroke:var(--red);stroke-width:3.5;stroke-linecap:round}
+.k-cap{fill:var(--cap)}
+.k-ring{fill:none;stroke:var(--cap-hi);stroke-width:2}
+.k-ptr{stroke:#f4f1ea;stroke-width:3;stroke-linecap:round}
+.knob:focus-visible .k-ring,.knob.turning .k-ring{stroke:var(--red-hi)}
+.kval{background:#1f2a1a;color:#b9d79a;border:0;border-radius:3px;font:12px var(--font-m);padding:1px 6px;min-width:44px;cursor:text;margin-top:2px}
+.kval:hover{color:#e3f5cf}
+.kedit{width:64px;font:12px var(--font-m);text-align:center;padding:1px 2px;border:1px solid var(--red);border-radius:3px}
+.knob .klab{margin-top:3px;max-width:100%;white-space:normal;text-align:center;line-height:1.2;letter-spacing:.08em}
+/* switches and menus */
+.pcell{display:grid;gap:4px;align-content:start}
+.pcell-sel{min-width:150px}.pcell-sel.wide{min-width:220px}
+.pswitch{display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:4px;border:1px solid #5d5a53;cursor:pointer;margin-top:15px;
+  background:linear-gradient(#f0ede6,#d3cfc6);font:600 12px var(--font-d);letter-spacing:.1em;text-transform:uppercase;color:var(--silk);box-shadow:0 2px 0 #7b776e,inset 0 1px 0 #fff}
+.pswitch[aria-pressed=true]{background:linear-gradient(#e2ded5,#c9c5bb);box-shadow:inset 0 2px 3px rgba(0,0,0,.25);transform:translateY(1px)}
+/* modulation slots */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:8px 12px}
+.mslot{display:grid;grid-template-columns:64px minmax(0,1fr) 60px;gap:8px;align-items:center;background:rgba(255,255,255,.22);border-radius:5px;padding:4px 8px}
+.mslot .pcell-sel{min-width:0}.mslot .pcell-sel .klab{display:none}
+.mname{font:700 12px var(--font-d);letter-spacing:.12em;text-transform:uppercase}
+.mnote{font:11px var(--font-b);color:var(--silk2);line-height:1.2}
+.mslot .knob .klab{display:none}
+.temper .knob{width:54px}
+/* envelope display */
+.envgraph{width:100%;height:92px;border-radius:4px;display:block;box-shadow:inset 0 0 0 2px #2a2b2d}
+/* zones */
+.zgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-height:0}
+.zone{background:rgba(255,255,255,.22);border-radius:5px;padding:7px 8px 8px;display:grid;gap:6px;align-content:start;min-width:0}
+.zone.off{opacity:.72}
+.zhead{display:flex;justify-content:space-between;font:700 12px var(--font-d);letter-spacing:.16em;color:var(--silk)}
+.zwarn{color:var(--red);letter-spacing:.04em;font-weight:600}
+.zone .lcdname{background:var(--lcd-bg);border:0;border-radius:3px;padding:4px 6px;width:100%;box-shadow:inset 0 1px 3px rgba(0,0,0,.35);font:13px var(--font-m)}
+.zknobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 2px}
+.zknobs .knob{width:auto}
+.zone .pcell-sel{min-width:0}
+/* keyboard map */
+.pmap{padding-bottom:10px}
+.pmap .mapwrap{flex:1;min-height:0;border-radius:4px;overflow:hidden;box-shadow:inset 0 0 0 2px #2a2b2d}
+.pmap canvas{width:100%;height:100%;display:block}
+.kbctl{display:flex;gap:6px;align-items:center}.kbctl .lcdsel{max-width:220px}
+@media (prefers-reduced-motion:reduce){.hwbtn:active,.pswitch[aria-pressed=true],.hwbtn.ptab[aria-selected=true]{transform:none}}
 /* sample process tools */
 .toolbar .tbreak{flex-basis:100%;height:0}
 .toolbar button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
@@ -225,6 +342,7 @@ table.qa select{max-width:9em;padding:3px 2px}
   </section>
 
   <section id="tab-programs" class="tab" aria-label="Program and keygroup editor">
+    <div id="plugView" class="plugview"></div>
     <aside class="rail">
       <h2>Program</h2>
       <div class="btns">
@@ -2263,7 +2381,315 @@ $('#pFromSamples').addEventListener('click',()=>{
 });
 const kgCur=()=>st.prog&&st.prog.kgs[st.kg]||null;
 const rootOf=name=>{const s=st.samples.find(x=>x.name===name);return s?s.pitch:null;};
-function renderProg(){renderArrange();renderProgList();renderKgList();drawMap();renderProgStage();renderProgInspector();}
+/* ---------- Programs: plugin panel ----------
+   One fixed 1600x900 panel in the S3000's own look, scaled to fill the tab. Parameters are knobs (drag up/down,
+   Shift for fine, mouse wheel, arrow keys, double-click for the default, click the value to type one), switches and
+   LCD-style menus, split into pages like MESA's Control Center. The classic list view is one click away. */
+const PLUG_W=1600,PLUG_H=900;
+let plugScale=1;
+const plug={on:true,ppage:'VOICE',kpage:'RANGE',lcd:''};
+try{const v=localStorage.getItem('S3000Workbench.plug.v1');if(v){const o=JSON.parse(v);if(typeof o.on==='boolean')plug.on=o.on;if(o.ppage)plug.ppage=o.ppage;if(o.kpage)plug.kpage=o.kpage;}}catch(e){}
+function plugSave(){try{localStorage.setItem('S3000Workbench.plug.v1',JSON.stringify({on:plug.on,ppage:plug.ppage,kpage:plug.kpage}));}catch(e){}}
+const plugOn=()=>plug.on;
+const PF=()=>Object.fromEntries(Ak.PROG_FIELDS.map(f=>[f.k,f])),KF=()=>Object.fromEntries(Ak.KG_FIELDS.map(f=>[f.k,f]));
+const svgNS='http://www.w3.org/2000/svg';
+function svg(tag,attrs){const e=document.createElementNS(svgNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function arcPath(cx,cy,r,a0,a1){const p=a=>[cx+r*Math.cos(a),cy+r*Math.sin(a)],[x0,y0]=p(a0),[x1,y1]=p(a1);return 'M'+x0.toFixed(2)+' '+y0.toFixed(2)+'A'+r+' '+r+' 0 '+(a1-a0>Math.PI?1:0)+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2);}
+function lcdSay(t){plug.lcd=t;const e=document.getElementById('plugLcd3');if(e)e.textContent=t;}
+function fmtVal(f,v){
+  if(f.note)return noteName(v);
+  if(f.vals&&f.vals[v]!=null)return f.vals[v];
+  if(f.t==='tune'){const s=v<0?'-':'+',a=Math.abs(v);return s+Math.floor(a/100)+'.'+String(a%100).padStart(2,'0');}
+  return (f.min<0&&v>0?'+':'')+v;
+}
+/* A knob for one parameter. size: 'lg' | 'md' | 'sm'. */
+function knob(buf,f,base,z,after,opt={}){
+  const lo=f.min+(f.disp||0),hi=f.max+(f.disp||0),bip=lo<0;
+  const def=opt.def!=null?opt.def:(bip?0:lo);
+  const size=opt.size||'md',R={lg:30,md:23,sm:17,xs:13}[size],W=R*2+(size==='xs'?8:12);
+  let v=Ak.fget(buf,f,base,z);
+  const label=opt.label||f.short||f.label;
+  const root=el('div',{class:'knob knob-'+size,role:'slider',tabindex:'0','aria-label':label,'aria-valuemin':String(lo),'aria-valuemax':String(hi)});
+  const s=svg('svg',{viewBox:'0 0 '+W+' '+W,width:W,height:W,'aria-hidden':'true'}),c=W/2,A0=Math.PI*0.75,A1=Math.PI*2.25;
+  const track=svg('path',{d:arcPath(c,c,R+3,A0,A1),class:'k-track'}),val=svg('path',{class:'k-val'});
+  const cap=svg('circle',{cx:c,cy:c,r:R-3,class:'k-cap'}),ring=svg('circle',{cx:c,cy:c,r:R-3,class:'k-ring'}),ptr=svg('line',{class:'k-ptr'});
+  s.append(track,val,cap,ring,ptr);
+  const out=el('button',{type:'button',class:'kval',title:'Click to type a value'}),lab=el('span',{class:'klab'},label);
+  root.append(s,out,lab);
+  const frac=x=>(x-lo)/((hi-lo)||1);
+  function paint(){
+    const a=A0+frac(v)*(A1-A0),am=bip?A0+frac(0)*(A1-A0):A0;
+    val.setAttribute('d',Math.abs(a-am)<0.01?'':arcPath(c,c,R+3,Math.min(a,am),Math.max(a,am)));
+    const r1=R*0.25,r2=R-6;ptr.setAttribute('x1',(c+r1*Math.cos(a)).toFixed(2));ptr.setAttribute('y1',(c+r1*Math.sin(a)).toFixed(2));
+    ptr.setAttribute('x2',(c+r2*Math.cos(a)).toFixed(2));ptr.setAttribute('y2',(c+r2*Math.sin(a)).toFixed(2));
+    out.textContent=fmtVal(f,v);root.setAttribute('aria-valuenow',String(v));root.setAttribute('aria-valuetext',label+' '+fmtVal(f,v));
+  }
+  function set(nv,quiet){
+    nv=Ak.clamp(Math.round(nv),lo,hi);if(nv===v)return;
+    v=Ak.fset(buf,f,nv,base,z);paint();lcdSay((opt.scope?opt.scope+' ':'')+label.toUpperCase()+'  '+fmtVal(f,v));
+    if(after&&!quiet)after(v);
+  }
+  // tuning moves in semitones; Shift for single cents. Other knobs move about the full range in 200 pixels.
+  const step=f.t==='tune'?100:1,perPx=f.t==='tune'?100/6:Math.max((hi-lo)/200,0.05);
+  let drag=null;
+  s.addEventListener('pointerdown',e=>{e.preventDefault();root.focus();s.setPointerCapture(e.pointerId);drag={y:e.clientY,v0:v,acc:0};root.classList.add('turning');});
+  s.addEventListener('pointermove',e=>{if(!drag)return;const dy=(drag.y-e.clientY)/plugScale,fine=e.shiftKey?(f.t==='tune'?0.06:0.2):1;
+    let nv=drag.v0+dy*perPx*fine;if(f.t==='tune'&&!e.shiftKey)nv=Math.round(nv/100)*100+((drag.v0%100+100)%100);set(nv);});
+  const end=()=>{if(drag){drag=null;root.classList.remove('turning');}};
+  s.addEventListener('pointerup',end);s.addEventListener('pointercancel',end);
+  s.addEventListener('dblclick',()=>set(def));
+  root.addEventListener('wheel',e=>{if(e.target.tagName==='INPUT')return;e.preventDefault();set(v+(e.deltaY<0?1:-1)*(e.shiftKey?1:step));},{passive:false});
+  root.addEventListener('keydown',e=>{
+    if(e.target!==root)return;
+    const k=e.key,big=f.t==='tune'?100:Math.max(1,Math.round((hi-lo)/10));
+    if(k==='ArrowUp'||k==='ArrowRight'){e.preventDefault();set(v+(e.shiftKey?1:step));}
+    else if(k==='ArrowDown'||k==='ArrowLeft'){e.preventDefault();set(v-(e.shiftKey?1:step));}
+    else if(k==='PageUp'){e.preventDefault();set(v+big);}else if(k==='PageDown'){e.preventDefault();set(v-big);}
+    else if(k==='Home'){e.preventDefault();set(lo);}else if(k==='End'){e.preventDefault();set(hi);}
+    else if(k==='Enter'){e.preventDefault();out.click();}
+  });
+  out.addEventListener('click',()=>{
+    const inp=el('input',{type:f.note?'text':'number',class:'kedit',value:f.note?noteName(v):String(v),min:String(lo),max:String(hi),step:'1','aria-label':label});
+    out.replaceWith(inp);inp.focus();inp.select();
+    let closed=false;   // Enter and the blur that follows must not both run
+    const done=ok=>{if(closed)return;closed=true;if(ok){let t=inp.value.trim();let nv=f.note?noteNum(t):+t;if(Number.isFinite(nv))set(nv);}inp.replaceWith(out);paint();};
+    inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();done(true);root.focus();}else if(e.key==='Escape'){e.preventDefault();done(false);root.focus();}});
+    inp.addEventListener('blur',()=>done(true));
+  });
+  root.addEventListener('focus',()=>lcdSay((opt.scope?opt.scope+' ':'')+label.toUpperCase()+'  '+fmtVal(f,v)));
+  paint();
+  return root;
+}
+/* note names typed into a knob: "C3", "F#2", "Bb1", or a MIDI number */
+function noteNum(t){
+  if(/^-?\d+$/.test(t))return +t;
+  const m=/^([A-Ga-g])([#b]?)(-?\d)$/.exec(t);if(!m)return NaN;
+  const base={c:0,d:2,e:4,f:5,g:7,a:9,b:11}[m[1].toLowerCase()]+(m[2]==='#'?1:m[2]==='b'?-1:0);
+  return (+m[3]+2)*12+base;
+}
+/* A two-or-more option field as a hardware push switch with a lamp (on/off) or an LCD-style menu. */
+function selector(buf,f,base,z,after,opt={}){
+  const cur=Ak.fget(buf,f,base,z),label=opt.label||f.short||f.label,keys=Object.keys(f.vals).map(Number);
+  if(keys.length===2&&f.vals[0]==='Off'&&f.vals[1]==='On'){
+    const b=el('button',{type:'button',class:'pswitch','aria-pressed':String(cur===1)},el('span',{class:'lamp'}),el('span',{},label));
+    b.addEventListener('click',()=>{const nv=Ak.fget(buf,f,base,z)===1?0:1;Ak.fset(buf,f,nv,base,z);b.setAttribute('aria-pressed',String(nv===1));lcdSay(label.toUpperCase()+'  '+(nv?'ON':'OFF'));if(after)after(nv);});
+    return el('div',{class:'pcell pcell-sw'},b);
+  }
+  const opts=keys.sort((a,b)=>(a===255)-(b===255)||a-b);if(!opts.includes(cur))opts.push(cur);
+  const s=el('select',{class:'lcdsel','aria-label':label},...opts.map(v=>el('option',{value:String(v)},f.vals[v]!=null?f.vals[v]:'Value '+v)));
+  s.value=String(cur);
+  s.addEventListener('change',()=>{Ak.fset(buf,f,+s.value,base,z);lcdSay(label.toUpperCase()+'  '+s.selectedOptions[0].textContent.toUpperCase());if(after)after(+s.value);});
+  return el('label',{class:'pcell pcell-sel'+(opt.wide?' wide':'')},el('span',{class:'klab'},label),s);
+}
+function control(buf,f,base,z,after,opt){return f.vals?selector(buf,f,base,z,after,opt):knob(buf,f,base,z,after,opt);}
+/* Envelope drawing: S3000 rates 0-99 (higher is slower), levels 0-99. */
+function envGraph(points,title){
+  const c=el('canvas',{class:'envgraph','aria-label':title});
+  const draw=()=>{
+    const dpr=(window.devicePixelRatio||1)*plugScale,w=c.clientWidth,h=c.clientHeight;if(!w)return;
+    c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+    g.fillStyle='#16251d';g.fillRect(0,0,w,h);g.strokeStyle='rgba(150,220,170,.12)';g.lineWidth=1;
+    for(let i=1;i<4;i++){const y=Math.round(h*i/4)+.5;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();}
+    const pts=points(),tot=pts.reduce((a,p)=>a+p.t,0)||1,X=t=>6+t/tot*(w-12),Y=l=>h-6-l/99*(h-28);
+    g.beginPath();let t=0;g.moveTo(X(0),Y(0));pts.forEach(p=>{t+=p.t;g.lineTo(X(t),Y(p.l));});
+    g.strokeStyle='#9be8b4';g.lineWidth=2;g.lineJoin='round';g.stroke();
+    g.lineTo(X(t),Y(0));g.closePath();g.fillStyle='rgba(155,232,180,.14)';g.fill();
+    g.fillStyle='rgba(155,232,180,.75)';g.font='10px '+getComputedStyle(document.body).getPropertyValue('--font-m');g.fillText(title,8,13);
+  };
+  c.addEventListener('redraw',draw);requestAnimationFrame(draw);
+  return c;
+}
+const rateT=r=>0.4+Math.pow(r/99,2)*10;  // display only: turns a 0-99 rate into a relative segment length
+function ampPoints(k){return ()=>[{t:rateT(k[0x0c]),l:99},{t:rateT(k[0x0d]),l:k[0x0e]},{t:3,l:k[0x0e]},{t:rateT(k[0x0f]),l:0}];}
+function env2Points(k){return ()=>[{t:rateT(k[0x14]),l:k[0x9c]},{t:rateT(k[0x9d]),l:k[0x9e]},{t:rateT(k[0x15]),l:k[0x16]},{t:3,l:k[0x16]},{t:rateT(k[0x17]),l:k[0x9f]}];}
+
+/* Page definitions. Each entry is a field key, or {k, size, label, def}. 'row' starts a new row. */
+const PROG_PAGES={
+  'VOICE':[{k:'midiChan'},{k:'priority'},{k:'steal'},{k:'legato'},'row',{k:'midiProg',label:'Program no.'},{k:'poly',label:'Voices',def:32},{k:'transpose',label:'Transpose'},{k:'rangeLow',label:'Range low',def:21},{k:'rangeHigh',label:'Range high',def:127}],
+  'OUTPUT':[{k:'level',size:'lg',def:80},{k:'pan',size:'lg'},{k:'loud',size:'lg',def:80},{k:'velLoud',label:'Vel > loud'},'row',{k:'output'},{k:'outLevel',label:'Indiv. level',def:50},{k:'fxBus'}],
+  'PITCH':[{k:'tune',size:'lg',label:'Fine tune'},{k:'bend',label:'Bend up',def:2},{k:'bendDown',label:'Bend down',def:2},{k:'presPitch',label:'Aftertouch'},'row',{k:'bendMode'},{k:'xfade'}],
+  'LFO 1':[{k:'lfo1Wave'},{k:'lfo1Desync',label:'Desync'},'row',{k:'lfo1Rate',size:'lg',label:'Speed',def:50},{k:'lfo1Depth',size:'lg',label:'Depth'},{k:'lfo1Delay',size:'lg',label:'Delay'},
+    {k:'mwDepth',label:'Mod wheel'},{k:'atDepth',label:'Aftertouch'},{k:'velDepth',label:'Velocity'},'mods',[['srcLfoRate','amtLfoRate','Speed'],['srcLfoDepth','amtLfoDepth','Depth'],['srcLfoDelay','amtLfoDelay','Delay']]],
+  'LFO 2':[{k:'lfo2Wave'},{k:'lfo2Trig'},'row',{k:'lfo2Rate',size:'lg',label:'Speed',def:50},{k:'lfo2Depth',size:'lg',label:'Depth'},{k:'lfo2Delay',size:'lg',label:'Delay'}],
+  'PORTA':[{k:'portOn',label:'Portamento'},{k:'portType'},'row',{k:'portTime',size:'lg',label:'Time'}],
+  'MOD':['mods',[['srcPan1','amtPan1','Pan 1'],['srcPan2','amtPan2','Pan 2'],['srcPan3','amtPan3','Pan 3'],['srcAmp1','amtAmp1','Loud 1'],['srcAmp2','amtAmp2','Loud 2'],
+    ['srcAmp3',null,'Loud 3'],['srcFilt1',null,'Filter 1'],['srcFilt2',null,'Filter 2'],['srcFilt3',null,'Filter 3'],['srcPitch',null,'Pitch']]],
+  'TEMPER':['temper'],
+  'PEDAL':[{k:'spLoud',size:'lg',label:'Loudness'},{k:'spAtt',size:'lg',label:'Attack'},{k:'spFilt',size:'lg',label:'Filter'}]
+};
+const KG_PAGES={
+  'RANGE':[{k:'low',size:'lg',label:'Low key',def:24},{k:'high',size:'lg',label:'High key',def:127},{k:'tune',size:'lg',label:'Fine tune'},{k:'beat',label:'Beat'},{k:'lfoPitch',label:'LFO 1 > pitch'},{k:'modPitch',label:'Pitch mod'},
+    'row',{k:'mute'},{k:'velXfade',label:'Vel. crossfade'},{k:'attackHold',label:'Attack hold'}],
+  'FILTER':[{k:'filter',size:'lg',label:'Cutoff',def:99},{k:'res',size:'lg',label:'Resonance'},{k:'envFilt',size:'lg',label:'Env 2 amount'},'row',{k:'keyFilt',label:'Key track'},{k:'velFilt',label:'Velocity'},{k:'presFilt',label:'Aftertouch'},
+    {k:'modFilt1',label:'Mod 1'},{k:'modFilt2',label:'Mod 2'},{k:'modFilt3',label:'Mod 3'}],
+  'AMP ENV':['graph:amp',{k:'ampA',size:'lg',label:'Attack'},{k:'ampD',size:'lg',label:'Decay',def:50},{k:'ampS',size:'lg',label:'Sustain',def:99},{k:'ampR',size:'lg',label:'Release',def:30},
+    'row',{k:'velAmpA',label:'Vel > attack'},{k:'velAmpR',label:'Vel > release'},{k:'offAmpR',label:'Off vel > rel'},{k:'keyAmpDR',label:'Key > D/R'},{k:'modAmp3',label:'Loud 3 amt'}],
+  'ENV 2':['graph:env2',{k:'filtA',label:'Rate 1'},{k:'env2L1',label:'Level 1',def:99},{k:'env2R2',label:'Rate 2',def:50},{k:'env2L2',label:'Level 2',def:99},{k:'filtD',label:'Rate 3',def:50},{k:'filtS',label:'Level 3',def:99},
+    {k:'filtR',label:'Rate 4',def:45},{k:'env2L4',label:'Level 4'},'row',{k:'velEnv2A',label:'Vel > attack'},{k:'velEnv2R',label:'Vel > release'},{k:'offEnv2R',label:'Off vel > rel'},{k:'keyEnv2DR',label:'Key > D/R'},
+    {k:'velFiltEnv',label:'Vel > depth'},{k:'envPitch',label:'Env 2 > pitch'}],
+  'ZONES':['zones'],
+  'FX':[{k:'kfxBus'},'row',{k:'kfxSend',size:'lg',label:'Send level'}]
+};
+const PAGE_HINTS={
+  'LFO 1':'LFO 1 reaches the pitch through each keygroup\'s LFO 1 > pitch knob (Keygroup, Range page). It can also be a modulation source.',
+  'LFO 2':'LFO 2 only works as a modulation source: choose it on the Mod page for pan, loudness, filter or pitch.',
+  'PORTA':'The S3000XL has rate and time modes. Check on the sampler which of mode 0 and 1 is which.',
+  'MOD':'Sources such as the mod wheel or an LFO. Loudness 3, filter and pitch amounts are set per keygroup.',
+  'TEMPER':'Cents up or down for each note of the octave. All at zero is equal temperament.',
+  'RANGE':'Keygroups in the same mute group cut each other off. Off lets them overlap.',
+  'FX':'Only with the EB16 effects board fitted.',
+  'ZONES':'Up to four samples per keygroup, chosen by velocity. Click a name to change the sample.'
+};
+function buildPage(buf,def,scope,after,extra){
+  const box=el('div',{class:'page'+(def.filter(d=>d&&d.k).length>11?' dense':'')});let row=el('div',{class:'prow'});box.append(row);
+  const F=scope==='PROG'?PF():KF();
+  for(let i=0;i<def.length;i++){
+    const d=def[i];
+    if(d==='row'){row=el('div',{class:'prow'});box.append(row);continue;}
+    if(d==='mods'){const list=def[++i];box.append(modSlots(buf,list,F,after));continue;}
+    if(d==='temper'){box.append(extra.temper());continue;}
+    if(d==='zones'){box.append(extra.zones());continue;}
+    if(typeof d==='string'&&d.startsWith('graph:')){box.prepend(envGraph(d==='graph:amp'?ampPoints(buf):env2Points(buf),d==='graph:amp'?'AMP ENVELOPE':'ENVELOPE 2'));continue;}
+    const f=F[d.k];if(!f)continue;
+    row.append(control(buf,f,0,undefined,after,{size:d.size,label:d.label,def:d.def,scope:scope==='PROG'?'':'KG'}));
+  }
+  return box;
+}
+function modSlots(buf,list,F,after){
+  const grid=el('div',{class:'mods'});
+  list.forEach(([src,amt,name])=>{
+    const sf=F[src],af=amt&&F[amt];
+    grid.append(el('div',{class:'mslot'},el('span',{class:'mname'},name),selector(buf,sf,0,undefined,after,{label:'Source'}),
+      af?knob(buf,af,0,undefined,after,{size:'sm',label:'Amount'}):el('span',{class:'mnote'},'Amount set per keygroup')));
+  });
+  return grid;
+}
+function plugTemper(p){
+  return ()=>{
+    const o=Ak.TEMPER_OFF,NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],row=el('div',{class:'prow temper'});
+    NAMES.forEach((n,i)=>row.append(knob(p.raw,{t:'i8',off:o+i,min:-50,max:50,label:n},0,undefined,null,{size:'sm',label:n,def:0})));
+    return el('div',{},row,el('div',{class:'btns'},el('button',{class:'hwbtn',onclick:()=>{for(let i=0;i<12;i++)p.raw[o+i]=0;renderPlug();lcdSay('EQUAL TEMPERAMENT');}},'Equal')));
+  };
+}
+function plugZones(k){
+  return ()=>{
+    const grid=el('div',{class:'zgrid'}),names=new Set(st.samples.map(s=>s.name));
+    for(let z=0;z<4;z++){
+      const b=Ak.zoneBase(z),nm=Ak.zoneName(k,z);
+      const name=el('input',{type:'text',class:'lcdname',maxlength:12,value:nm,list:'sampleNames',placeholder:'(empty)',spellcheck:'false','aria-label':'Zone '+(z+1)+' sample'});
+      name.addEventListener('input',()=>{const q=name.selectionStart;name.value=Ak.cleanName(name.value,true);name.setSelectionRange(q,q);});
+      name.addEventListener('change',()=>{Ak.setZoneName(k,z,name.value);renderPlug();});
+      const ZF=Object.fromEntries(Ak.ZONE_FIELDS.map(f=>[f.k,f])),ZX=Object.fromEntries(Ak.ZONE_EXTRA.map(f=>[f.k,f]));
+      const missing=nm&&!names.has(nm);
+      grid.append(el('div',{class:'zone'+(nm?'':' off')},el('div',{class:'zhead'},'ZONE '+(z+1),missing?el('span',{class:'zwarn',title:'"'+nm+'" is not one of the loaded samples'},'not loaded'):''),name,
+        el('div',{class:'zknobs'},
+          knob(k,ZF.velLow,b,undefined,()=>drawMap(),{size:'xs',label:'Vel lo',def:0}),knob(k,ZF.velHigh,b,undefined,()=>drawMap(),{size:'xs',label:'Vel hi',def:127}),
+          knob(k,ZF.tune,b,undefined,null,{size:'xs',label:'Tune'}),knob(k,ZF.loud,b,undefined,null,{size:'xs',label:'Loud'}),
+          knob(k,ZF.filt,b,undefined,null,{size:'xs',label:'Cutoff'}),knob(k,ZF.pan,b,undefined,null,{size:'xs',label:'Pan'}),
+          knob(k,ZX.zoneOut,0,z,null,{size:'xs',label:'Out'}),knob(k,ZX.velStart,0,z,null,{size:'xs',label:'Start'})),
+        selector(k,ZF.play,b,undefined,null,{label:'Playback'}),selector(k,ZX.constPitch,0,z,null,{label:'Pitch'})));
+    }
+    return grid;
+  };
+}
+function pageTabs(pages,cur,pick){
+  return el('div',{class:'ptabs',role:'tablist'},...Object.keys(pages).map(n=>el('button',{type:'button',role:'tab','aria-selected':String(n===cur),class:'hwbtn ptab',onclick:()=>pick(n)},el('span',{class:'lamp'}),n)));
+}
+function renderPlug(){
+  const host=$('#plugView');if(!host)return;
+  const p=st.prog,k=p&&kgCur();
+  host.replaceChildren();
+  const panel=el('div',{class:'plug',style:'width:'+PLUG_W+'px;height:'+PLUG_H+'px'});
+  host.append(panel);
+  // ----- header: badge, LCD, program and keygroup selection, actions -----
+  const progSel=el('select',{class:'lcdsel','aria-label':'Program',disabled:!st.progs.length},...st.progs.map((q,i)=>el('option',{value:String(i)},Ak.progName(q))));
+  if(p)progSel.value=String(st.progs.indexOf(p));
+  progSel.addEventListener('change',()=>{st.prog=st.progs[+progSel.value];st.kg=0;st.zone=0;renderProg();});
+  const stepProg=d=>{if(!st.progs.length)return;const i=(st.progs.indexOf(p)+d+st.progs.length)%st.progs.length;st.prog=st.progs[i];st.kg=0;st.zone=0;renderProg();};
+  const kgSel=el('select',{class:'lcdsel','aria-label':'Keygroup',disabled:!p||!p.kgs.length},...(p?p.kgs.map((q,i)=>el('option',{value:String(i)},String(i+1).padStart(2,'0')+'  '+noteName(q[3])+'–'+noteName(q[4])+'  '+(Ak.zoneName(q,0)||'(empty)'))):[]));
+  if(p)kgSel.value=String(st.kg);
+  kgSel.addEventListener('change',()=>{st.kg=+kgSel.value;st.zone=0;renderProg();});
+  const stepKg=d=>{if(!p||!p.kgs.length)return;st.kg=(st.kg+d+p.kgs.length)%p.kgs.length;st.zone=0;renderProg();};
+  const nameIn=el('input',{type:'text',class:'lcdname big',maxlength:12,value:p?Ak.progName(p):'','aria-label':'Program name',disabled:!p,spellcheck:'false'});
+  nameIn.addEventListener('input',()=>{const q=nameIn.selectionStart;nameIn.value=Ak.cleanName(nameIn.value,true);nameIn.setSelectionRange(q,q);});
+  nameIn.addEventListener('change',()=>{if(p){Ak.setProgName(p,nameIn.value||'PROGRAM');renderProg();}});
+  const kgInfo=k?('KG '+String(st.kg+1).padStart(2,'0')+'/'+String(p.kgs.length).padStart(2,'0')+'   '+noteName(k[3])+'–'+noteName(k[4])+'   ZONES '+k[0x1f]):p?'NO KEYGROUPS':'';
+  const btn=(t,fn,o={})=>el('button',{type:'button',class:'hwbtn'+(o.red?' red':''),title:o.title,disabled:o.off,onclick:fn},t);
+  panel.append(el('header',{class:'phead'},
+    el('div',{class:'badge'},el('b',{},'S3000'),el('span',{},'WORKBENCH'),el('i',{},'PROGRAM EDITOR')),
+    el('div',{class:'lcd'},
+      el('div',{class:'lcd1'},el('span',{},'PROGRAM'),nameIn,el('span',{class:'lcdr'},p?(st.progs.indexOf(p)+1)+'/'+st.progs.length:'')),
+      el('div',{class:'lcd2'},kgInfo),
+      el('div',{class:'lcd3',id:'plugLcd3'},plug.lcd||(p?'TURN A KNOB OR CLICK ITS VALUE TO TYPE':'OPEN OR CREATE A PROGRAM'))),
+    el('div',{class:'selcluster'},
+      el('div',{class:'selrow'},el('span',{class:'klab'},'Program'),btn('◀',()=>stepProg(-1),{title:'Previous program',off:!st.progs.length}),progSel,btn('▶',()=>stepProg(1),{title:'Next program',off:!st.progs.length})),
+      el('div',{class:'selrow'},el('span',{class:'klab'},'Keygroup'),btn('◀',()=>stepKg(-1),{title:'Previous keygroup',off:!k}),kgSel,btn('▶',()=>stepKg(1),{title:'Next keygroup',off:!k}))),
+    el('div',{class:'actions'},
+      btn('Open…',()=>$('#pOpen').click(),{title:'Open an .a3p program file'}),btn('New',()=>$('#pNew').click(),{title:'New empty program'}),
+      btn('From samples',()=>{setPlug(false);$('#pFromSamples').click();},{title:'Build a program from loaded samples (opens the classic view)'}),
+      btn('Quick Access',()=>{setPlug(false);st.qa=true;renderProg();},{title:'Every program in one table'}),
+      btn('Classic view',()=>setPlug(false),{title:'The list view with every setting in one column',red:true}))));
+  if(!p){panel.append(el('div',{class:'pempty'},el('h2',{},'No program open'),el('p',{},'Open an .a3p from your sampler, start a new program, or build one from samples.')));fitPlug();return;}
+  // ----- program section -----
+  const ppage=PROG_PAGES[plug.ppage]?plug.ppage:'VOICE',kpage=KG_PAGES[plug.kpage]?plug.kpage:'RANGE';
+  const progBox=el('section',{class:'psec'},el('div',{class:'secbar'},el('h3',{},'Program'),pageTabs(PROG_PAGES,ppage,n=>{plug.ppage=n;plugSave();renderPlug();})),
+    buildPage(p.raw,PROG_PAGES[ppage],'PROG',null,{temper:plugTemper(p)}),PAGE_HINTS[ppage]?el('p',{class:'phint'},PAGE_HINTS[ppage]):'');
+  // ----- keygroup section -----
+  const kgActions=el('div',{class:'kgact'},
+    btn('Add',()=>{if(p.kgs.length>=99)return say('99 keygroups is the limit.',true);const src=kgCur()||Ak.newKeygroup('',24,127);p.kgs.splice(st.kg+1,0,src.slice());st.kg++;renderProg();lcdSay('KEYGROUP ADDED (COPY OF THE CURRENT ONE)');},{title:'Add a copy of this keygroup'}),
+    btn('Delete',()=>{p.kgs.splice(st.kg,1);st.kg=Math.max(0,Math.min(st.kg,p.kgs.length-1));renderProg();lcdSay('KEYGROUP DELETED');},{off:!k,title:'Delete this keygroup'}),
+    btn('Sort',()=>{const c=kgCur();p.kgs.sort((a,b)=>a[3]-b[3]||a[4]-b[4]);st.kg=Math.max(0,p.kgs.indexOf(c));renderProg();},{off:!k,title:'Sort keygroups by key range'}));
+  const kgBox=el('section',{class:'psec'},el('div',{class:'secbar'},el('h3',{},'Keygroup'),pageTabs(KG_PAGES,kpage,n=>{plug.kpage=n;plugSave();renderPlug();}),kgActions),
+    k?buildPage(k,KG_PAGES[kpage],'KG',()=>{if(['RANGE'].includes(kpage)){drawMap();refreshKgSel();}if(kpage==='AMP ENV'||kpage==='ENV 2')redrawEnv();},{zones:plugZones(k)}):el('p',{class:'phint'},'This program has no keygroups. Press Add.'),
+    PAGE_HINTS[kpage]?el('p',{class:'phint'},PAGE_HINTS[kpage]):'');
+  panel.append(el('div',{class:'pmid'},progBox,kgBox));
+  // ----- keyboard map and test keyboard -----
+  const L=lanes(p);
+  const map=el('canvas',{id:'map','aria-label':'Keyboard map: click a bar to pick a keygroup, click the keys to play'});
+  panel.append(el('section',{class:'pmap'},el('div',{class:'secbar'},el('h3',{},'Keyboard map'),el('span',{class:'phint inline'},p.kgs.length+' keygroups · '+L.count+' layer'+(L.count===1?'':'s')+'. Click a bar to edit it, or play the keys.'),el('span',{style:'flex:1'}),plugKb()),
+    el('div',{class:'mapwrap'},map)));
+  wireMap(map,p);
+  fitPlug();
+  function refreshKgSel(){const q=kgCur();const o=kgSel.options[st.kg];if(q&&o)o.textContent=String(st.kg+1).padStart(2,'0')+'  '+noteName(q[3])+'–'+noteName(q[4])+'  '+(Ak.zoneName(q,0)||'(empty)');
+    const l2=panel.querySelector('.lcd2');if(l2&&q)l2.textContent='KG '+String(st.kg+1).padStart(2,'0')+'/'+String(p.kgs.length).padStart(2,'0')+'   '+noteName(q[3])+'–'+noteName(q[4])+'   ZONES '+q[0x1f];}
+  function redrawEnv(){const g=panel.querySelector('.envgraph');if(!g)return;const n=envGraph(kpage==='AMP ENV'?ampPoints(k):env2Points(k),kpage==='AMP ENV'?'AMP ENVELOPE':'ENVELOPE 2');g.replaceWith(n);}
+}
+function plugKb(){
+  const ins=kb.access?[...kb.access.inputs.values()]:[];
+  const sel=el('select',{class:'lcdsel',id:'kbIn','aria-label':'MIDI keyboard',disabled:!ins.length},...(ins.length?ins.map(i=>el('option',{value:i.id},i.name||i.id)):[el('option',{value:''},kb.access?'No keyboard found':'MIDI keyboard')]));
+  if(kb.inp)sel.value=kb.inp;
+  sel.addEventListener('change',()=>{kb.inp=sel.value;kbAttach();rememberPort('keyboard',kb.access&&kb.access.inputs.get(kb.inp));});
+  return el('div',{class:'kbctl'},el('button',{type:'button',class:'hwbtn',onclick:kbConnect},kb.access?'Refresh':'Connect keyboard'),sel,el('button',{type:'button',class:'hwbtn',onclick:kbPanic,title:'Stop every note'},'Stop all'));
+}
+function wireMap(m,p){
+  m.addEventListener('pointerdown',e=>{if(e.offsetY<m.clientHeight-PIANO)return;const n=24+Math.floor(e.offsetX/m.clientWidth*104);m.setPointerCapture(e.pointerId);m._n=n;kbNoteOn(n,100);lcdSay('PLAY '+noteName(n));});
+  m.addEventListener('pointerup',()=>{if(m._n!=null){kbNoteOff(m._n);m._n=null;}});
+  m.addEventListener('click',e=>{
+    if(e.offsetY>=m.clientHeight-PIANO)return;
+    const LL=lanes(p),note=24+Math.floor(e.offsetX/m.clientWidth*104),Lm=LL.map,lane=Math.floor((e.offsetY-TOP)/laneH(m,LL.count));
+    let hit=p.kgs.findIndex((k,i)=>k[3]<=note&&note<=k[4]&&Lm[i]===lane);if(hit<0)hit=p.kgs.findIndex(k=>k[3]<=note&&note<=k[4]);
+    if(hit>=0){st.kg=hit;st.zone=0;renderProg();}
+  });
+  requestAnimationFrame(drawMap);
+}
+/* Scale the fixed panel to fill the tab, keeping its shape; redraw canvases at the new size so they stay sharp. */
+function fitPlug(){
+  const host=$('#plugView'),panel=host&&host.querySelector('.plug');if(!panel||!host.clientWidth)return;
+  const s=Math.min(host.clientWidth/PLUG_W,host.clientHeight/PLUG_H);
+  const changed=Math.abs(s-plugScale)>0.001;plugScale=s;
+  panel.style.transform='translate('+((host.clientWidth-PLUG_W*s)/2)+'px,'+((host.clientHeight-PLUG_H*s)/2)+'px) scale('+s+')';
+  if(changed){drawMap();panel.querySelectorAll('.envgraph').forEach(g=>g.dispatchEvent(new Event('redraw')));}
+}
+new ResizeObserver(()=>{if(plugOn())fitPlug();}).observe($('#plugView'));
+document.querySelectorAll('.tabs [data-tab=programs]').forEach(b=>b.addEventListener('click',()=>{if(plugOn())requestAnimationFrame(()=>{renderPlug();});}));
+function setPlug(on){
+  plug.on=on;plugSave();
+  $('#tab-programs').classList.toggle('plug-on',on);
+  if(!on)st.qa=st.qa||false;
+  renderProg();
+}
+
+function renderProg(){$('#tab-programs').classList.toggle('plug-on',plugOn());if(!plugOn())$('#plugView').replaceChildren();if(plugOn()){$('#pStage').replaceChildren();renderProgList();renderKgList();renderPlug();return;}renderArrange();renderProgList();renderKgList();drawMap();renderProgStage();renderProgInspector();}
 function renderProgList(){
   const ul=$('#progList'); ul.replaceChildren();
   st.progs.forEach((p,i)=>ul.append(el('li',{},el('button',{'aria-current':p===st.prog,onclick:()=>{st.prog=p;st.kg=0;st.zone=0;renderProg();}},
@@ -2350,6 +2776,7 @@ function lanes(p){
   return {map:out,count:Math.max(1,ends.length)};
 }
 const LANE_H=22,TOP=18,PIANO=34;
+function laneH(c,count){if(!c||!c.closest('.plug'))return LANE_H;return Ak.clamp(Math.floor((c.clientHeight-TOP-PIANO-6)/Math.max(1,count)),16,64);}
 /* ---------- Quick Access: every program in one table, for setting up a mix (as MESA's Quick Access window) ---------- */
 const QA_COLS=['midiProg','midiChan','poly','priority','rangeLow','rangeHigh','transpose','tune','output','outLevel','fxBus','level','pan','loud'];
 function qaCell(p,f){
@@ -2380,13 +2807,15 @@ function renderQuickAccess(s){
       el('td',{class:'num'},String(p.kgs.length)),...cols.map(f=>qaCell(p,f)));
   });
   s.append(el('div',{class:'toolbar'},el('b',{},'Quick Access'),el('span',{class:'hint'},st.progs.length+' program'+(st.progs.length===1?'':'s')+'. Changes apply straight away.'),
-      el('span',{style:'flex:1'}),el('button',{class:'primary',disabled:!st.prog,onclick:()=>{st.qa=false;renderProg();}},st.prog?'Back to '+Ak.progName(st.prog):'Back')),
+      el('span',{style:'flex:1'}),el('button',{class:'primary',disabled:!st.prog,onclick:()=>{st.qa=false;renderProg();}},st.prog?'Back to '+Ak.progName(st.prog):'Back'),
+      el('button',{onclick:()=>{st.qa=false;setPlug(true);}},'Panel view')),
     st.progs.length?el('div',{class:'qa-wrap'},el('table',{class:'qa'},
       el('thead',{},el('tr',{},el('th',{scope:'col'},'Program'),el('th',{scope:'col',title:'Keygroups'},'KGs'),...cols.map(f=>el('th',{scope:'col',title:f.label},short[f.k])))),
       el('tbody',{},...rows))):el('p',{class:'hint'},'No programs loaded yet.'),
     el('p',{class:'hint'},'Prog is the MIDI program number, and Voices is polyphony, both as the sampler shows them. Programs on the same MIDI channel play together, which is how layers and splits across programs are made. Tune is in cents (100 = 1 semitone).'));
 }
 function renderProgStage(){
+  if(plugOn()){renderPlug();return;}
   const s=$('#pStage'); s.replaceChildren(); const p=st.prog;
   if(st.qa){renderQuickAccess(s);return;}
   if(!p){s.append(el('div',{class:'empty'},el('h2',{},'No program open'),el('p',{},'Open an .a3p from your sampler, start an empty program, or build one from the samples you have loaded.')));return;}
@@ -2398,7 +2827,8 @@ function renderProgStage(){
   pp.value=p.part==null?'auto':String(p.part);
   pp.addEventListener('change',()=>{p.part=pp.value==='auto'?null:+pp.value;dsk.out=null;dsk.msg='';renderProgList();say(p.part==null?Ak.progName(p)+': partition chosen automatically on export.':Ak.progName(p)+' will go to partition '+String.fromCharCode(65+p.part)+' on the disk image, together with the samples it uses.');});
   s.append(el('div',{class:'toolbar'},el('span',{class:'hint'},'Program name'),nameIn,el('span',{class:'hint'},p.kgs.length+' keygroups'),el('span',{class:'hint'},'Disk partition'),pp,
-      el('span',{style:'flex:1'}),el('button',{title:'Every program in one table: MIDI channels, levels, outputs, tuning',onclick:()=>{st.qa=true;renderProgStage();}},'Quick Access')),
+      el('span',{style:'flex:1'}),el('button',{title:'Every program in one table: MIDI channels, levels, outputs, tuning',onclick:()=>{st.qa=true;renderProgStage();}},'Quick Access'),
+      el('button',{class:'primary',title:'The knob panel',onclick:()=>setPlug(true)},'Panel view')),
     el('div',{class:'wavewrap',style:`height:${TOP+L.count*LANE_H+PIANO+6}px;background:var(--panel2)`},el('canvas',{id:'map','aria-label':'Keyboard map'})),
     el('p',{class:'hint'},'Click a bar to select its keygroup. Bars stacked on top of each other are layers that overlap on the keyboard. Click the piano keys under the map to hear them.'),kbPanel(),liveSection());
   liveWire();
@@ -2418,7 +2848,7 @@ function renderProgStage(){
 }
 function drawMap(){
   const c=$('#map'); if(!c||!st.prog||!c.clientWidth)return;
-  const p=st.prog,dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  const p=st.prog,dpr=(window.devicePixelRatio||1)*(c.closest('.plug')?plugScale:1),w=c.clientWidth,h=c.clientHeight;
   if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
   const cs=getComputedStyle(document.documentElement),col=n=>cs.getPropertyValue(n).trim(),dark=matchMedia('(prefers-color-scheme:dark)').matches;
@@ -2426,12 +2856,12 @@ function drawMap(){
   const nw=w/104,X=n=>(n-24)*nw,L=lanes(p),mono=getComputedStyle(document.body).getPropertyValue('--font-m');
   x.font='11px '+mono;x.textBaseline='middle';
   p.kgs.forEach((k,i)=>{
-    const lo=Math.min(k[3],k[4]),hi=Math.max(k[3],k[4]),bx=X(lo),bw=(hi-lo+1)*nw,by=TOP+L.map[i]*LANE_H+2;
-    x.fillStyle=`hsl(${(i*47)%360} ${dark?45:50}% ${dark?42:70}%)`;x.fillRect(bx+1,by,bw-2,LANE_H-4);
-    if([...kb.down].some(n=>n>=lo&&n<=hi)){x.fillStyle='rgba(255,255,255,.45)';x.fillRect(bx+1,by,bw-2,LANE_H-4);}
-    if(i===st.kg){x.strokeStyle=col('--accent');x.lineWidth=2;x.strokeRect(bx+1,by,bw-2,LANE_H-4);}
+    const LH=laneH(c,L.count),lo=Math.min(k[3],k[4]),hi=Math.max(k[3],k[4]),bx=X(lo),bw=(hi-lo+1)*nw,by=TOP+L.map[i]*LH+2;
+    x.fillStyle=`hsl(${(i*47)%360} ${dark?45:50}% ${dark?42:70}%)`;x.fillRect(bx+1,by,bw-2,LH-4);
+    if([...kb.down].some(n=>n>=lo&&n<=hi)){x.fillStyle='rgba(255,255,255,.45)';x.fillRect(bx+1,by,bw-2,LH-4);}
+    if(i===st.kg){x.strokeStyle=col('--accent');x.lineWidth=2;x.strokeRect(bx+1,by,bw-2,LH-4);}
     const t=Ak.zoneName(k,0);x.fillStyle=dark?'#fff':'#111';
-    if(bw>40&&t){x.save();x.beginPath();x.rect(bx+1,by,bw-2,LANE_H-4);x.clip();x.fillText(t,bx+5,by+(LANE_H-4)/2);x.restore();}
+    if(bw>40&&t){x.save();x.beginPath();x.rect(bx+1,by,bw-2,LH-4);x.clip();x.fillText(t,bx+5,by+(LH-4)/2);x.restore();}
   });
   const py=h-PIANO;
   for(let n=24;n<=127;n++){const pc=n%12,black=[1,3,6,8,10].includes(pc);
@@ -2482,6 +2912,7 @@ function temperamentEditor(p){
   return group('Program','Temperament',[el('div',{class:'tgrid'},...cells),el('div',{class:'btns'},reset)],'Cents up or down for each note of the octave, from C. All zero is normal equal temperament.');
 }
 function renderProgInspector(){
+  if(plugOn())return;
   const box=$('#pInspector'); box.replaceChildren(); const p=st.prog; if(!p)return;
   box.append(el('h3',{},'Program'),...grouped(Ak.PROG_FIELDS,p.raw,'Program',null,{
     'LFO 1':'Its effect on pitch is set per keygroup (LFO 1 to pitch, under Range and tune). It can also be picked as a modulation source.',
