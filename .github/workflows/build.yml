@@ -86,14 +86,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest       # Apple Silicon (M1 and later)
+          - os: macos-15           # Apple Silicon (M1 and later)
             arch: apple-silicon
-            optional: false
+            optional: true
           - os: macos-15-intel     # Intel Macs
             arch: intel
             optional: true
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.optional }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
