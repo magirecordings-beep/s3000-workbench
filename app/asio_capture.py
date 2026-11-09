@@ -1,5 +1,7 @@
-"""ASIO recording for the S3000 Workbench app: one input stream, recorded while the page asks for it."""
+"""Audio recording for the S3000 Workbench app: ASIO on Windows, Core Audio on the Mac.
+One input stream, recorded while the page asks for it."""
 import os
+import sys
 import threading
 import time
 
@@ -22,6 +24,7 @@ class Capture:
         self.xruns = 0
         self.rate = None
         self.info = {}
+        self.pick = None            # Core Audio: device channels to keep (the stream opens 0..max of them)
 
     @property
     def is_open(self):
@@ -33,9 +36,12 @@ class Capture:
             return [{"id": 0, "name": "Test tone (started with --fake)", "inputs": 8, "rate": 44100}]
         import sounddevice as sd
         apis = sd.query_hostapis()
-        asio = [i for i, a in enumerate(apis) if "ASIO" in a["name"]]
-        if not asio:
-            raise RuntimeError("ASIO is not available on this PC. Install your sound card's ASIO driver, then restart the program.")
+        if sys.platform == "win32":
+            asio = [i for i, a in enumerate(apis) if "ASIO" in a["name"]]
+            if not asio:
+                raise RuntimeError("ASIO is not available on this PC. Install your sound card's ASIO driver, then restart the program.")
+        else:
+            asio = list(range(len(apis)))     # Core Audio on the Mac
         out = []
         for i, d in enumerate(sd.query_devices()):
             if d["hostapi"] in asio and d["max_input_channels"] > 0:
@@ -55,6 +61,14 @@ class Capture:
             return self.info
         import sounddevice as sd
         dev = sd.query_devices(device)
+        win = sys.platform == "win32"
+        if win:
+            n, extra, self.pick = len(channels), sd.AsioSettings(channel_selectors=channels), None
+        else:
+            # Core Audio: open the device's first channels up to the highest one wanted, keep only the chosen ones
+            n = min(max(channels) + 1, int(dev["max_input_channels"]))
+            channels = [c for c in channels if c < n] or [0]
+            extra, self.pick = None, channels
         tried, last = [], None
         for r in [rate, dev["default_samplerate"]]:
             if not r or r in tried:
@@ -62,17 +76,17 @@ class Capture:
             tried.append(r)
             try:
                 self.stream = sd.InputStream(
-                    device=device, channels=len(channels), samplerate=r, dtype="float32",
-                    extra_settings=sd.AsioSettings(channel_selectors=channels),
-                    callback=self._callback, latency="low")
+                    device=device, channels=n, samplerate=r, dtype="float32",
+                    extra_settings=extra, callback=self._callback, latency="low")
                 self.stream.start()
                 break
             except Exception as e:      # rate refused by the driver: fall back to the card's own rate
                 last = e
                 self.stream = None
         if self.stream is None:
-            raise RuntimeError("The ASIO driver would not open at %s Hz: %s. Close any other program using the card (a DAW) and try again."
-                               % (" or ".join(str(int(t)) for t in tried), last))
+            what = "The ASIO driver" if win else "The audio device"
+            raise RuntimeError("%s would not open at %s Hz: %s. Close any other program using the interface (a DAW) and try again."
+                               % (what, " or ".join(str(int(t)) for t in tried), last))
         self.rate = int(self.stream.samplerate)
         self.info = {"name": dev["name"], "rate": self.rate, "channels": channels,
                      "requested": int(rate) if rate else None}
@@ -93,6 +107,8 @@ class Capture:
 
     # ---------- audio ----------
     def _callback(self, indata, frames, time_info, status):
+        if self.pick is not None:
+            indata = indata[:, self.pick]
         data = indata if indata.shape[1] == 2 else np.repeat(indata[:, :1], 2, axis=1)
         p = np.abs(data).max(axis=0)
         with self.lock:

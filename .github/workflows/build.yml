@@ -1,4 +1,4 @@
-name: Build Windows installer
+name: Build Windows and Mac apps
 
 on:
   push:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    name: Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +60,7 @@ jobs:
           Get-Content $log -ErrorAction SilentlyContinue
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           if (-not $ok) { throw "The window did not load the Workbench" }
-          if ((Get-Content $log -Raw) -match 'using an Edge window|Built-in window failed') { Write-Host "::warning::The built-in window did not start on the build machine; the Edge fallback was used" }
+          if ((Get-Content $log -Raw) -match 'using a browser window|Built-in window failed') { Write-Host "::warning::The built-in window did not start on the build machine; the Edge fallback was used" }
           else { Write-Host "Built-in window loaded the Workbench" }
 
       - name: Install Inno Setup
@@ -78,3 +79,83 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: installer/Output/*.exe
+
+  mac:
+    name: Mac (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest       # Apple Silicon (M1 and later)
+            arch: apple-silicon
+            optional: false
+          - os: macos-15-intel     # Intel Macs
+            arch: intel
+            optional: true
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.optional }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pillow
+
+      - name: Check Core Audio and CoreMIDI load
+        run: |
+          python -c "import sounddevice as sd; print(sd.get_portaudio_version(), [a['name'] for a in sd.query_hostapis()])"
+          python -c "import rtmidi; print('rtmidi', rtmidi.get_compiled_api())"
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(python -c "import re;print(re.search(r'VERSION = \"([^\"]+)\"', open('app/s3000_workbench.py').read()).group(1))")" >> "$GITHUB_OUTPUT"
+
+      - name: Build the app
+        run: pyinstaller --noconfirm --clean s3000_workbench_mac.spec
+
+      - name: Smoke test (starts, serves the page with Mac MIDI)
+        run: |
+          BIN="dist/S3000 Workbench.app/Contents/MacOS/S3000 Workbench"
+          "$BIN" --fake --no-window --stay &
+          PID=$!
+          ok=""
+          for i in $(seq 1 30); do sleep 1; if curl -s http://127.0.0.1:8741/ping | grep -q s3000-workbench; then ok=1; break; fi; done
+          if [ -z "$ok" ]; then kill $PID; cat "$HOME/Library/Application Support/S3000 Workbench/log.txt" || true; exit 1; fi
+          curl -s http://127.0.0.1:8741/ | grep -q '"midiBridge": true' || { kill $PID; echo "Page not served with the MIDI bridge"; exit 1; }
+          kill $PID
+          echo "Smoke test passed"
+
+      - name: Window test (opens the app window and checks the page loads in it)
+        run: |
+          LOG="$HOME/Library/Application Support/S3000 Workbench/log.txt"
+          rm -f "$LOG"
+          "dist/S3000 Workbench.app/Contents/MacOS/S3000 Workbench" --fake &
+          PID=$!
+          ok=""
+          for i in $(seq 1 60); do sleep 1; if grep -q "Window connected" "$LOG" 2>/dev/null; then ok=1; break; fi; done
+          cat "$LOG" || true
+          kill $PID 2>/dev/null || true
+          if [ -z "$ok" ]; then echo "::warning::The window test could not confirm the page loaded on the build machine (no screen session)"; fi
+
+      - name: Make the disk image
+        run: |
+          mkdir -p dmg
+          cp -R "dist/S3000 Workbench.app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "S3000 Workbench" -srcfolder dmg -ov -format UDZO "S3000-Workbench-${{ steps.ver.outputs.version }}-mac-${{ matrix.arch }}.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: S3000-Workbench-${{ steps.ver.outputs.version }}-mac-${{ matrix.arch }}
+          path: "*.dmg"
+
+      - name: Publish a release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.dmg"

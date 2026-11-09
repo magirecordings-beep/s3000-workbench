@@ -4129,7 +4129,7 @@ async function openAsio(){
     }}};
     const chip=(t,c)=>el('span',{class:'achip'+(c?' '+c:'')},t);
     const label=chans.length>1?'Inputs '+(chans[0]+1)+' + '+(chans[1]+1):'Input '+(chans[0]+1)+' (mono)';
-    g('auChips').replaceChildren(chip('ASIO','good'),chip(H.fake?'Test tone (--fake mode, no sound card)':info.name),chip(label),
+    g('auChips').replaceChildren(chip(APP&&APP.platform==='darwin'?'Core Audio':'ASIO','good'),chip(H.fake?'Test tone (--fake mode, no sound card)':info.name),chip(label),
       chip('Recording at '+info.rate/1000+' kHz'+(info.rate!==want?' (the driver runs at this rate, not '+want/1000+' kHz)':''),info.rate!==want?'bad':''));
     if(info.rate!==want)g('auRate').value=String(info.rate);
     g('auEnable').textContent='Reconnect';
@@ -4143,7 +4143,8 @@ function watchAsio(){
     if(A.mode!=='asio')return;
     if(levels().some(v=>v>1e-4)){if(g('auErr').dataset.sig)err('');return;}
     if(performance.now()-t0<4000){A.sigT=setTimeout(tick,200);return;}
-    err('No signal on '+g('auAsioCh').selectedOptions[0].textContent+' yet. In PatchMix, check the synth\'s input strip has a send to the HOST ASIO pair you picked, and that its Peak Meter moves. Then play a note (Test note).');
+    if(APP&&APP.platform==='darwin')err('No signal on '+g('auAsioCh').selectedOptions[0].textContent+' yet. Check the synth is plugged into those inputs and the interface\'s input gain is up, and that S3000 Workbench is allowed under System Settings › Privacy & Security › Microphone. Then play a note (Test note).');
+    else err('No signal on '+g('auAsioCh').selectedOptions[0].textContent+' yet. In PatchMix, check the synth\'s input strip has a send to the HOST ASIO pair you picked, and that its Peak Meter moves. Then play a note (Test note).');
     g('auErr').dataset.sig='1';A.sigT=setTimeout(tick,500);
   };
   tick();
@@ -4155,7 +4156,14 @@ if(APP){
   g('auSource').options[1].textContent='ASIO (sound card\'s ASIO driver)';
   helperConnect().catch(()=>err(helperMissing));
   const ha=document.getElementById('helpAsio');
-  if(ha)ha.innerHTML='<b>Recording through ASIO.</b> ASIO is built into this program. On the Auto sample tab, <b>Source</b> is set to <b>ASIO</b>: choose the device and inputs, and press <b>Enable input</b>. Close any DAW first, as ASIO lets one program use the card at a time. Monitor through the card itself (PatchMix or your interface\'s mixer). The program closes itself a few seconds after you close this window.';
+  if(APP.platform==='darwin'){
+    // on the Mac the program records through Core Audio, the Mac's own audio system
+    g('auAsioHint').innerHTML='Recording through Core Audio. Pick your audio interface and the inputs your synth is plugged into. If no interface is listed, allow the microphone for S3000 Workbench in System Settings › Privacy & Security › Microphone, then restart the program.';
+    g('auSource').options[1].textContent='Audio interface (Core Audio)';
+    g('auSource').options[0].textContent='Web audio input';
+    document.querySelectorAll('label').forEach(l=>{if(l.firstChild&&l.firstChild.nodeType===3&&l.firstChild.textContent==='ASIO device ')l.firstChild.textContent='Audio device ';});
+    if(ha)ha.innerHTML='<b>Recording on the Mac.</b> The program records through Core Audio. On the Auto sample tab, <b>Source</b> is set to <b>Audio interface</b>: choose the device and inputs, and press <b>Enable input</b>. The first time, macOS asks to allow the microphone: press Allow, or the inputs stay silent. Monitor through your interface or its mixer software. MIDI ports appear as they do in Audio MIDI Setup.';
+  }else if(ha)ha.innerHTML='<b>Recording through ASIO.</b> ASIO is built into this program. On the Auto sample tab, <b>Source</b> is set to <b>ASIO</b>: choose the device and inputs, and press <b>Enable input</b>. Close any DAW first, as ASIO lets one program use the card at a time. Monitor through the card itself (PatchMix or your interface\'s mixer). The program closes itself a few seconds after you close this window.';
 }
 function showSource(){
   const asio=g('auSource').value==='asio';

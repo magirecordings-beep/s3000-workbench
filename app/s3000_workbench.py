@@ -1,10 +1,11 @@
 """
-S3000 Workbench for Windows
+S3000 Workbench for Windows and the Mac
 
-Serves the Workbench page on this computer only (127.0.0.1), records through the sound card's ASIO
-driver for the Auto sample tab, and shows the page in the program's own window (WebView2, the Edge
-engine built into Windows). If WebView2 cannot start, it falls back to an Edge app window.
-The program exits when its window is closed.
+Serves the Workbench page on this computer only (127.0.0.1), records for the Auto sample tab (through
+the sound card's ASIO driver on Windows, Core Audio on the Mac), and shows the page in the program's own
+window: WebView2 (the Edge engine built into Windows) or WKWebView on the Mac. On Windows, if WebView2
+cannot start, it falls back to an Edge app window. On the Mac, MIDI goes through the program (midi_bridge),
+because the Mac's web engine has no Web MIDI. The program exits when its window is closed.
 
     S3000 Workbench.exe              normal start
     S3000 Workbench.exe --fake       no sound card needed: a test tone instead of ASIO
@@ -27,9 +28,11 @@ from websockets.datastructures import Headers
 from websockets.http11 import Response
 
 from asio_capture import Capture
+from midi_bridge import MidiBridge, POLYFILL
 
 APP_NAME = "S3000 Workbench"
-VERSION = "1.3.0"
+VERSION = "1.4.0"
+MAC = sys.platform == "darwin"
 PORT = 8741                 # fixed, so the page keeps the same address and its saved work between runs
 LEVEL_EVERY = 0.05          # seconds between level reports to the page
 IDLE_EXIT = 8               # seconds after the last window closes before the program exits
@@ -45,7 +48,10 @@ def resource(name):
 
 
 def data_dir():
-    root = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    if MAC:
+        root = os.path.join(os.path.expanduser("~"), "Library", "Application Support")
+    else:
+        root = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), ".local", "share")
     d = os.path.join(root, APP_NAME)
     os.makedirs(d, exist_ok=True)
     return d
@@ -58,6 +64,13 @@ def message_box(text, title=APP_NAME):
         try:
             import ctypes
             ctypes.windll.user32.MessageBoxW(None, text, title, 0x10)
+            return
+        except Exception:
+            pass
+    if MAC:
+        try:
+            script = 'display alert %s message %s as critical' % (json.dumps(title), json.dumps(text))
+            subprocess.run(["osascript", "-e", script], timeout=600)
             return
         except Exception:
             pass
@@ -115,7 +128,7 @@ def run_webview(url, on_closed_first):
     try:
         import webview
     except Exception as e:
-        log.warning("Built-in window not available (%s); using an Edge window", e)
+        log.warning("Built-in window not available (%s); using a browser window", e)
         return False
     try:
         webview.settings["ALLOW_DOWNLOADS"] = True          # the Workbench saves files as downloads
@@ -127,7 +140,10 @@ def run_webview(url, on_closed_first):
     try:
         webview.create_window(APP_NAME, url, width=1440, height=900, min_size=(900, 600), text_select=True)
         log.info("Opening the built-in window")
-        webview.start(gui="edgechromium", private_mode=False, storage_path=store)
+        if MAC:
+            webview.start(private_mode=False, storage_path=store)      # WKWebView (Cocoa)
+        else:
+            webview.start(gui="edgechromium", private_mode=False, storage_path=store)
     except Exception as e:
         log.exception("Built-in window failed")
         return False
@@ -146,10 +162,13 @@ def bring_to_front():
 
 
 # ---------- the page ----------
-def page_bytes(port):
+def page_bytes(port, midi_bridge):
     with open(resource("workbench.html"), encoding="utf-8") as f:
         html = f.read()
-    flag = '<script>window.S3K_APP=%s;</script>\n' % json.dumps({"version": VERSION, "ws": "/asio"})
+    flag = '<script>window.S3K_APP=%s;</script>\n' % json.dumps(
+        {"version": VERSION, "ws": "/asio", "platform": sys.platform, "midiBridge": midi_bridge})
+    if midi_bridge:
+        flag += POLYFILL
     i = html.find("<script")
     html = html[:i] + flag + html[i:] if i >= 0 else flag + html
     return html.encode("utf-8")
@@ -165,8 +184,10 @@ class App:
     def __init__(self, args):
         self.args = args
         self.cap = Capture(args.fake)
+        self.midi_on = MAC or args.midi_bridge
+        self.midi = MidiBridge(args.fake) if self.midi_on else None
         self.clients = set()
-        self.page = page_bytes(args.port)
+        self.page = page_bytes(args.port, self.midi_on)
         self.url = "http://127.0.0.1:%d/" % args.port
         self.origins = {"http://127.0.0.1:%d" % args.port, "http://localhost:%d" % args.port}
         self.done = None
@@ -177,7 +198,7 @@ class App:
     # plain web requests: the page itself, and a ping used to find a copy that is already running
     def process_request(self, connection, request):
         path = request.path.split("?")[0]
-        if path == "/asio":
+        if path == "/asio" or (path == "/midi" and self.midi):
             origin = request.headers.get("Origin")
             if origin not in self.origins:
                 log.warning("Refused a connection from %s", origin)
@@ -197,6 +218,9 @@ class App:
         return http(404, b"Not found", "text/plain")
 
     async def handler(self, ws):
+        if self.midi and ws.request.path.split("?")[0] == "/midi":
+            await self.midi.handler(ws)
+            return
         for old in list(self.clients):          # one window records at a time: the newest takes over
             await old.close(1000, "Opened in another window")
         self.clients.add(ws)
@@ -270,12 +294,16 @@ class App:
                              max_size=None, ping_interval=20):
                 log.info("%s %s running at %s%s", APP_NAME, VERSION, self.url, " (test tone)" if self.args.fake else "")
                 ready.set()
+                if self.midi:
+                    midi_task = asyncio.create_task(self.midi.watch())
                 if self.idle_exit:
                     self.idle_task = asyncio.create_task(self.exit_after(FIRST_WINDOW_WAIT))
                 await self.done
         finally:
             ready.set()
             self.cap.close()
+            if self.midi:
+                self.midi.close()
 
     def run(self):
         """Server on a background thread; the window (which must own the main thread) in front of it."""
@@ -296,16 +324,33 @@ class App:
         ready.wait()
         if errors:
             raise errors[0]
+        if MAC:
+            keep_awake()
         if builtin and run_webview(self.url, self.stop):
             t.join(timeout=5)
             return
-        if not self.args.no_window:               # Edge app window: exits a few seconds after it closes
+        if not self.args.no_window:               # browser window: exits a few seconds after it closes
             self.idle_exit = True
             self.loop.call_soon_threadsafe(lambda: setattr(self, "idle_task", self.loop.create_task(self.exit_after(FIRST_WINDOW_WAIT))))
             open_window(self.url)
         t.join()
         if errors:
             raise errors[0]
+
+
+_activity = None
+
+
+def keep_awake():
+    """Stop macOS App Nap from slowing the program down while it plays and records in the background."""
+    global _activity
+    try:
+        from Foundation import NSProcessInfo
+        user_initiated, latency_critical = 0x00FFFFFF, 0xFF00000000
+        _activity = NSProcessInfo.processInfo().beginActivityWithOptions_reason_(
+            user_initiated | latency_critical, "Playing MIDI and recording samples")
+    except Exception as e:
+        log.warning("Could not turn off App Nap: %s", e)
 
 
 def already_running(port):
@@ -322,7 +367,8 @@ def already_running(port):
 
 def main():
     ap = argparse.ArgumentParser(description=APP_NAME)
-    ap.add_argument("--fake", action="store_true", help="test tone instead of ASIO")
+    ap.add_argument("--fake", action="store_true", help="test tone instead of the audio interface")
+    ap.add_argument("--midi-bridge", action="store_true", help="MIDI through the program, as on the Mac (for testing)")
     ap.add_argument("--no-window", action="store_true", help="do not open the app window")
     ap.add_argument("--edge", action="store_true", help="use an Edge app window instead of the built-in window")
     ap.add_argument("--stay", action="store_true", help="keep running after the window closes")
