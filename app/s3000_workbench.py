@@ -29,7 +29,7 @@ from websockets.http11 import Response
 from asio_capture import Capture
 
 APP_NAME = "S3000 Workbench"
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 PORT = 8741                 # fixed, so the page keeps the same address and its saved work between runs
 LEVEL_EVERY = 0.05          # seconds between level reports to the page
 IDLE_EXIT = 8               # seconds after the last window closes before the program exits

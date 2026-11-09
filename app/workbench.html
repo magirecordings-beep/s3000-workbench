@@ -143,6 +143,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);padding:1px 4px;border-r
 .toolbar .tbreak{flex-basis:100%;height:0}
 .toolbar button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .procpanel{border:1px solid var(--line);border-radius:3px;background:var(--panel);padding:8px 10px;display:grid;gap:8px}
+.procpanel[hidden]{display:none}
 .prochead,.procrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .procrow .inl{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--dim)}
 .procrow input[type=number]{width:6em}
@@ -1744,6 +1745,7 @@ function drawWave(){
     st.slice.cuts.forEach((c,i)=>{
       const ax=Math.round(X(c.a))+.5,bx=Math.round(X(c.b))+.5; if(bx<-20||ax>w+20)return;
       x.fillStyle=i%2?'rgba(255,157,110,.10)':'rgba(255,157,110,.18)';x.fillRect(ax,0,Math.max(1,bx-ax),h);
+      if(sl.gate){const g=gateEnd(s.data,c,s.rate);if(g<c.b){const gx=X(g);x.fillStyle='rgba(0,0,0,.55)';x.fillRect(gx,0,Math.max(1,bx-gx),h);}}   // gated off
       x.strokeStyle='#ff9d6e';x.beginPath();x.moveTo(ax,0);x.lineTo(ax,h);x.stroke();
       x.setLineDash([4,3]);x.beginPath();x.moveTo(bx,0);x.lineTo(bx,h);x.stroke();x.setLineDash([]);
       x.fillStyle='#ff9d6e';x.fillRect(ax,2,16,14);x.fillStyle='#000';x.fillText(String(i+1),ax+8,9);
@@ -2009,7 +2011,17 @@ addEventListener('keydown',e=>{
 
 /* ---------- samples: auto slice ---------- */
 /* st.slice = { uid, cuts: [{a, b}], limited, edited }. Each slice has its own start and end, so they can leave gaps or overlap. */
-const sl={mode:'hits',sens:50,count:8,minMs:60,start:36,prefix:'',fades:true,prog:true,link:true};
+const sl={mode:'hits',sens:50,count:8,minMs:60,start:36,prefix:'',fades:true,prog:true,link:true,gate:false,gateDb:-40};
+/* Gate (as in ReCycle): end a slice once its hit has died away. The level is set relative to that slice's own peak, so
+   soft and loud hits are treated alike. It closes after the sound stays below the level for 30 ms, keeping 10 ms more. */
+function gateEnd(d,c,rate){
+  let peak=0,pi=c.a;for(let i=c.a;i<c.b;i++){const v=Math.abs(d[i]);if(v>peak){peak=v;pi=i;}}
+  if(!peak)return c.b;
+  const thr=peak*Math.pow(10,sl.gateDb/20),hold=Math.round(rate*0.03),keep=Math.round(rate*0.01),minEnd=c.a+Math.round(rate*0.01);
+  let last=pi;
+  for(let i=pi;i<c.b;i++){if(Math.abs(d[i])>=thr)last=i;else if(i-last>=hold)return Math.max(minEnd,Math.min(c.b,last+keep));}
+  return c.b;
+}
 const maxSlices=()=>Math.max(1,Math.min(99,128-sl.start));
 const sliceOn=()=>{const s=cur();return !!(s&&st.slice&&st.slice.uid===s.uid);};
 function sliceCalc(){
@@ -2094,6 +2106,7 @@ function doSlice(){
   const edited=sliceOn()&&st.slice.edited,cuts=sliceOn()?st.slice.cuts.map(c=>({...c})):sliceCalc().cuts;
   if(!cuts.length||(cuts.length<2&&!edited)){say('Only one slice found. Raise the sensitivity, lower the shortest slice, or use equal parts.',true);return;}
   cuts.sort((x,y)=>x.a-y.a||x.b-y.b);
+  if(sl.gate)cuts.forEach(c=>{c.b=gateEnd(s.data,c,s.rate);});
   const cutsOk=cuts.filter(c=>c.b-c.a>=2);
   const out=Ak.sliceSamples(s,cutsOk,{prefix:sl.prefix,fades:sl.fades});
   if(!out.length){say('Those slices are too short to cut.',true);return;}
@@ -2107,7 +2120,7 @@ function doSlice(){
     Ak.setProgName(p,out[0].name.replace(/ \d+$/,'')||'SLICES');st.progs.push(p);uniqProgName(p);
     st.live={srcUid:s.uid,fades:sl.fades,items:out.map((o,i)=>({c:{a:cutsOk[i].a,b:cutsOk[i].b},uid:o.uid})),view:null};
     st.slice=null; renderSamples(); setProgram(p); setTab('programs');
-    say('Cut '+s.name+' into '+out.length+' samples and built program '+Ak.progName(p)+' with one key each, '+range_+'. Try it with Test keyboard.');
+    say('Cut '+s.name+' into '+out.length+' samples'+(sl.gate?' (gated at '+sl.gateDb+' dB)':'')+' and built program '+Ak.progName(p)+' with one key each, '+range_+'. Try it with Test keyboard.');
   }else{
     st.slice=null; selectSample(first);
     say('Cut '+s.name+' into '+out.length+' new samples.');
@@ -2130,6 +2143,10 @@ function sliceSection(s){
     row('Name',prefix),
     el('label',{class:'row'},el('span',{},'First key'),numIn(sl.start,24,127,v=>{sl.start=v;nn.textContent=noteName(v);}),nn),
     el('label',{class:'row'},el('span',{},'Short fades'),chk(sl.fades,v=>sl.fades=v),el('span')),
+    el('label',{class:'row',title:'End each slice once its hit has died away, so tails, room noise and bleed are left out and the samples use less memory'},el('span',{},'Gate tails'),chk(sl.gate,v=>{sl.gate=v;renderSampleInspector();drawWave();}),el('span')),
+    sl.gate?el('label',{class:'row',title:'How far below each hit\'s peak the slice ends. Lower keeps more of the tail.'},el('span',{},'Gate level'),
+      (()=>{const i=el('input',{type:'number',min:-80,max:-6,step:1,value:String(sl.gateDb),'aria-label':'Gate level in dB below the hit'});
+        i.addEventListener('change',()=>{sl.gateDb=Ak.clamp(Math.round(+i.value||-40),-80,-6);i.value=sl.gateDb;drawWave();});return i;})(),el('span',{class:'nn'},'dB')):null,
     el('label',{class:'row'},el('span',{},'Build a program'),chk(sl.prog,v=>sl.prog=v),el('span')),
     el('label',{class:'row'},el('span',{},'Move touching edges together'),chk(sl.link,v=>sl.link=v),el('span')),
     el('p',{class:'hint',id:'slCount'},slCountText()),
