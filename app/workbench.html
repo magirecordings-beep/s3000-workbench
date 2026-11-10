@@ -144,6 +144,12 @@ code{font:12.5px var(--font-m);background:var(--panel2);padding:1px 4px;border-r
 body[data-tab=programs] #tab-programs.plug-on{display:block;position:relative;min-height:0;overflow:hidden;background:#3a3b3d}
 #tab-programs.plug-on>.rail,#tab-programs.plug-on>.stage,#tab-programs.plug-on>.inspector{display:none}
 #tab-programs.plug-on #plugView{display:block;position:absolute;inset:0;overflow:hidden}
+.viewsw{display:flex;align-items:center;gap:0;margin:0 0 12px}
+.viewsw span{font-size:12px;color:var(--dim);margin-right:8px}
+.viewsw button{flex:1;border-radius:0;margin:0}
+.viewsw button:first-of-type{border-radius:6px 0 0 6px}
+.viewsw button:last-of-type{border-radius:0 6px 6px 0;margin-left:-1px}
+.viewsw button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .plug{
   --ch:#cbc8bf;--ch-hi:#e2dfd7;--ch-lo:#a8a499;--well:#bdb9af;--seam:#8f8b80;--silk:#26272a;--silk2:#57585b;
   --red:#c4302b;--red-hi:#e0463f;--lcd-bg:#a3bb7a;--lcd-ink:#1b2712;--lcd-dim:#4d613a;--cap:#2b2c2f;--cap-hi:#4a4c50;--trk:#9a968b;
@@ -344,6 +350,11 @@ table.qa select{max-width:9em;padding:3px 2px}
   <section id="tab-programs" class="tab" aria-label="Program and keygroup editor">
     <div id="plugView" class="plugview"></div>
     <aside class="rail">
+      <div class="viewsw" role="group" aria-label="Program editor view">
+        <span>View</span>
+        <button id="pViewPanel" title="The knob panel, laid out like the sampler">Panel</button>
+        <button id="pViewClassic" aria-pressed="true" title="The list view with every setting in one column">Classic</button>
+      </div>
       <h2>Program</h2>
       <div class="btns">
         <button class="primary" id="pOpen">Open .a3p…</button>
@@ -2682,6 +2693,8 @@ function fitPlug(){
 }
 new ResizeObserver(()=>{if(plugOn())fitPlug();}).observe($('#plugView'));
 document.querySelectorAll('.tabs [data-tab=programs]').forEach(b=>b.addEventListener('click',()=>{if(plugOn())requestAnimationFrame(()=>{renderPlug();});}));
+$('#pViewPanel').addEventListener('click',()=>{st.qa=false;setPlug(true);});
+$('#pViewClassic').addEventListener('click',()=>setPlug(false));
 function setPlug(on){
   plug.on=on;plugSave();
   $('#tab-programs').classList.toggle('plug-on',on);

@@ -31,7 +31,7 @@ from asio_capture import Capture
 from midi_bridge import MidiBridge, POLYFILL
 
 APP_NAME = "S3000 Workbench"
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 MAC = sys.platform == "darwin"
 PORT = 8741                 # fixed, so the page keeps the same address and its saved work between runs
 LEVEL_EVERY = 0.05          # seconds between level reports to the page
